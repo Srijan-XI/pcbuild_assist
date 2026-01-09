@@ -1,0 +1,139 @@
+/* Algolia InstantSearch Styles - Dark Theme */
+
+.ais-SearchBox-form {
+  position: relative;
+}
+
+.ais-SearchBox-input {
+  width: 100%;
+  background-color: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.ais-SearchBox-input::placeholder {
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.ais-SearchBox-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.ais-SearchBox-submit,
+.ais-SearchBox-loadingIndicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ais-SearchBox-submit {
+  left: 0.75rem;
+}
+
+.ais-SearchBox-reset,
+.ais-SearchBox-loadingIndicator {
+  right: 0.75rem;
+}
+
+.ais-SearchBox-submitIcon,
+.ais-SearchBox-resetIcon,
+.ais-SearchBox-loadingIcon {
+  width: 1rem;
+  height: 1rem;
+  fill: rgba(148, 163, 184, 0.8);
+}
+
+.ais-SearchBox-reset:hover .ais-SearchBox-resetIcon {
+  fill: white;
+}
+
+.ais-Hits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ais-Hits-item {
+  list-style: none;
+  margin-bottom: 0.5rem;
+}
+
+.ais-Highlight-highlighted {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-style: normal;
+  font-weight: 600;
+  padding: 0 0.125rem;
+  border-radius: 0.125rem;
+}
+
+/* Empty state */
+.ais-Hits--empty {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+/* Loading state */
+.ais-SearchBox-loadingIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Stats */
+.ais-Stats {
+  font-size: 0.75rem;
+  color: rgba(148, 163, 184, 0.8);
+  padding: 0.5rem 0;
+}
+
+/* Pagination */
+.ais-Pagination {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.ais-Pagination-item {
+  list-style: none;
+}
+
+.ais-Pagination-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: white;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.ais-Pagination-link:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.ais-Pagination-item--selected .ais-Pagination-link {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.ais-Pagination-item--disabled .ais-Pagination-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
