@@ -115,25 +115,20 @@ export default function Search({
             <button
                 onClick={() => setIsOpen(true)}
                 className={cn(
-                    "w-full flex items-center rounded-xl px-4 py-3 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900",
-                    darkMode
-                        ? "bg-slate-900/50 backdrop-blur-md border border-white/10 text-slate-400 hover:bg-slate-800/50 hover:border-white/20 hover:text-slate-200"
-                        : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300",
-                    darkMode && "dark"
+                    "w-full flex items-center rounded-2xl px-5 py-4 text-left transition-all outline-none ring-offset-0",
+                    "bg-slate-900/80 backdrop-blur-xl border border-white/10 text-slate-400 shadow-xl",
+                    "hover:bg-slate-800 hover:border-blue-500/30 hover:text-slate-200 hover:shadow-blue-500/10",
+                    "focus:ring-2 focus:ring-blue-500/50",
+                    className
                 )}
             >
-                <SearchIcon className={cn("mr-3 h-5 w-5", darkMode ? "opacity-50" : "opacity-40")} />
+                <SearchIcon className="mr-3 h-5 w-5 text-blue-500" />
                 {isAlgoliaConfigured ? (
-                    <span className="text-sm font-medium">Search components...</span>
+                    <span className="text-sm font-medium text-slate-300">Search for components...</span>
                 ) : (
-                    <span className="text-sm font-medium">Search (Algolia not configured)...</span>
+                    <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded ml-auto">Algolia Not Configured</span>
                 )}
-                <kbd className={cn(
-                    "pointer-events-none absolute right-4 top-3 hidden h-6 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex",
-                    darkMode ? "bg-white/5 border-white/10 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-500"
-                )}>
-                    <span className="text-xs">⌘</span>K
-                </kbd>
+                {isAlgoliaConfigured && <span className="ml-auto text-xs text-slate-500 font-mono bg-white/5 px-2 py-1 rounded border border-white/5">⌘K</span>}
             </button>
 
             {isOpen && (

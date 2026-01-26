@@ -1,5 +1,5 @@
 from algoliasearch.search.client import SearchClientSync
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import os
 from dotenv import load_dotenv
 
@@ -16,16 +16,41 @@ class AlgoliaService:
         if not all([self.app_id, self.search_api_key, self.admin_api_key]):
             raise ValueError("Missing Algolia credentials in environment variables")
         
-        # Client for admin operations (indexing) - v4 API
         self.admin_client = SearchClientSync(self.app_id, self.admin_api_key)
-        self.index_name = "pc_components"
-        
-        # Client for search operations
         self.search_client = SearchClientSync(self.app_id, self.search_api_key)
+        self.index_name = "pc_components"
+    
+    def _extract_search_result(self, response: Any) -> Any:
+        """Extract actual search result from Algolia v4 API response wrapper"""
+        if not response or not hasattr(response, 'results') or not response.results:
+            return None
         
-        # Initialize index references - Removed in v4, use client methods with index_name
-        # self.index and self.search_index are not needed
-
+        result = response.results[0]
+        return getattr(result, 'actual_instance', result)
+    
+    def _build_filters(self, filters: Optional[Dict[str, Any]] = None) -> tuple:
+        """Build facet and numeric filters from filter dictionary"""
+        facet_filters = []
+        numeric_filters = []
+        
+        if not filters:
+            return facet_filters, numeric_filters
+        
+        for key, value in filters.items():
+            if key == "price_range" and isinstance(value, dict):
+                min_price = value.get("min", 0)
+                max_price = value.get("max")
+                if min_price > 0:
+                    numeric_filters.append(f"price>={min_price}")
+                if max_price:
+                    numeric_filters.append(f"price<={max_price}")
+            elif key in ["type", "brand", "socket", "memory_type", "form_factor", "performance_tier"]:
+                if isinstance(value, list):
+                    facet_filters.append([f"{key}:{v}" for v in value])
+                else:
+                    facet_filters.append(f"{key}:{value}")
+        
+        return facet_filters, numeric_filters
     
     def search_components(
         self,
@@ -39,46 +64,14 @@ class AlgoliaService:
         
         Args:
             query: Search term (component name, brand, etc.)
-            filters: Dictionary with filter criteria
+            filters: Dictionary with filter criteria (type, brand, price_range, etc.)
             limit: Maximum results to return
             offset: Pagination offset
             
         Returns:
             Search results with hits, facets, and metadata
         """
-        search_params = {
-            "query": query,
-            "hitsPerPage": limit,
-            "page": offset // limit,
-            "analytics": True,  # Track searches for insights
-            "attributesToRetrieve": ["*"],
-            "attributesToHighlight": ["name", "brand"],
-        }
-        
-        # Build facet filters
-        if filters:
-            facet_filters = []
-            numeric_filters = []
-            
-            for key, value in filters.items():
-                if key == "price_range" and isinstance(value, dict):
-                    # Handle price range
-                    min_price = value.get("min", 0)
-                    max_price = value.get("max")
-                    if max_price:
-                        numeric_filters.append(f"price>={min_price}")
-                        numeric_filters.append(f"price<={max_price}")
-                elif key in ["type", "brand", "socket", "memory_type", "form_factor", "performance_tier"]:
-                    # Exact match filters
-                    if isinstance(value, list):
-                        facet_filters.append([f"{key}:{v}" for v in value])
-                    else:
-                        facet_filters.append(f"{key}:{value}")
-            
-            if facet_filters:
-                search_params["facetFilters"] = facet_filters
-            if numeric_filters:
-                search_params["numericFilters"] = numeric_filters
+        facet_filters, numeric_filters = self._build_filters(filters)
         
         try:
             response = self.search_client.search(
@@ -88,23 +81,27 @@ class AlgoliaService:
                         "query": query,
                         "hitsPerPage": limit,
                         "page": offset // limit,
-                        "facetFilters": facet_filters if facet_filters else [],
-                        "numericFilters": numeric_filters if numeric_filters else [],
+                        "facetFilters": facet_filters,
+                        "numericFilters": numeric_filters,
+                        "attributesToRetrieve": ["*"],
+                        "attributesToHighlight": ["name", "brand"],
+                        "analytics": True,
                     }]
                 }
             )
             
-            # Extract first result (we only sent one request)
-            result = response.get("results", [{}])[0] if response.get("results") else {}
+            result = self._extract_search_result(response)
+            if not result:
+                return {"hits": [], "nbHits": 0}
             
             return {
-                "hits": result.get("hits", []),
-                "nbHits": result.get("nbHits", 0),
-                "page": result.get("page", 0),
-                "nbPages": result.get("nbPages", 0),
-                "hitsPerPage": result.get("hitsPerPage", limit),
-                "processingTimeMS": result.get("processingTimeMS", 0),
-                "facets": result.get("facets", {})
+                "hits": getattr(result, 'hits', []),
+                "nbHits": getattr(result, 'nb_hits', 0),
+                "page": getattr(result, 'page', 0),
+                "nbPages": getattr(result, 'nb_pages', 0),
+                "hitsPerPage": getattr(result, 'hits_per_page', limit),
+                "processingTimeMS": getattr(result, 'processing_time_ms', 0),
+                "facets": getattr(result, 'facets', {})
             }
         except Exception as e:
             print(f"Algolia search error: {e}")
@@ -115,34 +112,24 @@ class AlgoliaService:
         component_type: str,
         filters: Optional[Dict[str, Any]] = None,
         limit: int = 50
-    ) -> List[Dict]:
+    ) -> List[Any]:
         """
         Search components by type (CPU, GPU, etc.)
         
         Args:
-            component_type: Component type to filter by
-            filters: Additional filters
+            component_type: Component type to filter by (CPU, GPU, Motherboard, etc.)
+            filters: Additional filters (socket, brand, performance_tier, price_range)
             limit: Maximum results
             
         Returns:
             List of matching components
         """
-        search_params = {
-            "query": "",
-            "facetFilters": [f"type:{component_type}"],
-            "hitsPerPage": limit,
-            "analytics": True,
-        }
-        
-        # Add additional filters
+        # Start with type filter
+        type_filters = {"type": component_type}
         if filters:
-            for key, value in filters.items():
-                if key == "socket" and value:
-                    search_params["facetFilters"].append(f"socket:{value}")
-                elif key == "brand" and value:
-                    search_params["facetFilters"].append(f"brand:{value}")
-                elif key == "performance_tier" and value:
-                    search_params["facetFilters"].append(f"performance_tier:{value}")
+            type_filters.update(filters)
+        
+        facet_filters, numeric_filters = self._build_filters(type_filters)
         
         try:
             response = self.search_client.search(
@@ -150,29 +137,29 @@ class AlgoliaService:
                     "requests": [{
                         "indexName": self.index_name,
                         "query": "",
-                        "facetFilters": search_params.get("facetFilters", []),
+                        "facetFilters": facet_filters,
+                        "numericFilters": numeric_filters,
                         "hitsPerPage": limit,
                         "analytics": True
                     }]
                 }
             )
             
-            # Extract hits from first result
-            results = response.get("results", [{}])[0] if response.get("results") else {}
-            return results.get("hits", [])
+            result = self._extract_search_result(response)
+            return getattr(result, 'hits', []) if result else []
         except Exception as e:
             print(f"Algolia search by type error: {e}")
             return []
     
-    def get_component_by_id(self, component_id: str) -> Optional[Dict]:
+    def get_component_by_id(self, component_id: str) -> Optional[Any]:
         """
         Get a single component by ID
         
         Args:
-            component_id: Unique component identifier
+            component_id: Unique component identifier (objectID)
             
         Returns:
-            Component data or None
+            Component data or None if not found
         """
         try:
             response = self.search_client.search(
@@ -180,35 +167,33 @@ class AlgoliaService:
                     "requests": [{
                         "indexName": self.index_name,
                         "query": "",
-                        "filters": f"objectID:{component_id}"
+                        "filters": f"objectID:{component_id}",
+                        "hitsPerPage": 1
                     }]
                 }
             )
-            results = response.get("results", [{}])[0] if response.get("results") else {}
-            hits = results.get("hits", [])
-            return hits[0] if hits else None
+            
+            result = self._extract_search_result(response)
+            if result:
+                hits = getattr(result, 'hits', [])
+                return hits[0] if hits else None
+            return None
         except Exception as e:
             print(f"Error fetching component by ID: {e}")
             return None
     
     def get_facets(self, component_type: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get available facet values for filtering
+        Get available facet values for filtering UI dropdowns
         
         Args:
-            component_type: Optional type filter
+            component_type: Optional type filter to get facets for specific component type
             
         Returns:
-            Dictionary of facet values
+            Dictionary of facet values (brand, socket, performance_tier, etc.)
         """
-        search_params = {
-            "query": "",
-            "facets": ["brand", "type", "performance_tier", "socket", "memory_type", "form_factor"],
-            "hitsPerPage": 0,  # Don't return results, only facets
-        }
-        
-        if component_type:
-            search_params["facetFilters"] = [f"type:{component_type}"]
+        facet_list = ["brand", "type", "performance_tier", "socket", "memory_type", "form_factor"]
+        facet_filters = [f"type:{component_type}"] if component_type else []
         
         try:
             response = self.search_client.search(
@@ -216,78 +201,81 @@ class AlgoliaService:
                     "requests": [{
                         "indexName": self.index_name,
                         "query": "",
-                        "facets": search_params.get("facets", []),
+                        "facets": facet_list,
                         "hitsPerPage": 0,
-                        "facetFilters": search_params.get("facetFilters", [])
+                        "facetFilters": facet_filters
                     }]
                 }
             )
-            result = response.get("results", [{}])[0] if response.get("results") else {}
-            return result.get("facets", {})
+            
+            result = self._extract_search_result(response)
+            return getattr(result, 'facets', {}) if result else {}
         except Exception as e:
             print(f"Error fetching facets: {e}")
             return {}
     
-    def partial_update_components(self, updates: List[Dict]) -> Dict[str, Any]:
+    def partial_update_components(self, updates: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Partially update components (e.g. add reviews)
+        Partially update components (e.g., add reviews)
+        
         Args:
             updates: List of objects with objectID and fields to update
+            
+        Returns:
+            Success status and task ID
         """
+        if not updates:
+            return {"success": False, "error": "No updates provided"}
+        
         try:
             response = self.admin_client.partial_update_objects(
                 index_name=self.index_name,
                 objects=updates,
-                create_if_not_exists=False # Only update existing
+                create_if_not_exists=False
             )
-            if hasattr(response, 'task_id'):
-                return {"success": True, "taskID": response.task_id}
             
-            # Fallback for dict-like response (older clients or mocks)
-            return {
-                "success": True,
-                "taskID": response.get("taskID") if isinstance(response, dict) else None
-            }
+            task_id = getattr(response, 'task_id', None)
+            if not task_id and isinstance(response, dict):
+                task_id = response.get("taskID")
+            
+            return {"success": True, "taskID": task_id, "count": len(updates)}
         except Exception as e:
             print(f"Error updating components: {e}")
             return {"success": False, "error": str(e)}
 
-    def index_components(self, components: List[Dict]) -> Dict[str, Any]:
+    def index_components(self, components: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Index components to Algolia (admin operation)
         
         Args:
-            components: List of component dictionaries
+            components: List of component dictionaries to index
             
         Returns:
-            Indexing response
+            Indexing response with success status and task ID
         """
+        if not components:
+            return {"success": False, "error": "No components to index"}
+        
         # Ensure each component has objectID
         for component in components:
             if "objectID" not in component:
-                component["objectID"] = component.get("id", "")
+                component["objectID"] = component.get("id", f"auto_{hash(str(component))}")
         
         try:
             response = self.admin_client.save_objects(
                 index_name=self.index_name,
                 objects=components
             )
-            # Handle potential list response (Algolia v4 batching)
-            task_ids = []
-            object_ids = []
             
-            # If response is a list, iterate; if dict, check normally; if object, check attributes
+            # Handle different response types
             if isinstance(response, list):
-                # Only try to extract info if we really need it, otherwise just success
-                return {"success": True, "count": len(components)}
-            elif hasattr(response, 'task_id'):
-                return {"success": True, "taskID": response.task_id}
+                return {"success": True, "count": len(components), "batches": len(response)}
             
-            # Fallback for dict-like
-            return {
-                "success": True,
-                "taskID": response.get("taskID") if isinstance(response, dict) else None
-            }
+            task_id = getattr(response, 'task_id', None)
+            if not task_id and isinstance(response, dict):
+                task_id = response.get("taskID")
+            
+            return {"success": True, "taskID": task_id, "count": len(components)}
         except Exception as e:
             print(f"Error indexing components: {e}")
             return {"success": False, "error": str(e)}
@@ -297,23 +285,26 @@ class AlgoliaService:
         Clear all objects from the index (admin operation)
         
         Returns:
-            Clear operation response
+            Clear operation response with success status
         """
         try:
             response = self.admin_client.clear_objects(index_name=self.index_name)
-            if hasattr(response, 'task_id'):
-                return {"success": True, "taskID": response.task_id}
-            return {"success": True, "taskID": response.get("taskID") if isinstance(response, dict) else None}
+            
+            task_id = getattr(response, 'task_id', None)
+            if not task_id and isinstance(response, dict):
+                task_id = response.get("taskID")
+            
+            return {"success": True, "taskID": task_id}
         except Exception as e:
             print(f"Error clearing index: {e}")
             return {"success": False, "error": str(e)}
     
     def configure_index_settings(self) -> Dict[str, Any]:
         """
-        Configure Algolia index settings for optimal search
+        Configure Algolia index settings for optimal PC component search
         
         Returns:
-            Settings update response
+            Settings update response with success status
         """
         settings = {
             "searchableAttributes": [
@@ -356,12 +347,16 @@ class AlgoliaService:
                 index_name=self.index_name,
                 index_settings=settings
             )
-            if hasattr(response, 'task_id'):
-                return {"success": True, "taskID": response.task_id}
-            return {"success": True, "taskID": response.get("taskID") if isinstance(response, dict) else None}
+            
+            task_id = getattr(response, 'task_id', None)
+            if not task_id and isinstance(response, dict):
+                task_id = response.get("taskID")
+            
+            return {"success": True, "taskID": task_id}
         except Exception as e:
             print(f"Error configuring index settings: {e}")
             return {"success": False, "error": str(e)}
+
 
 # Create singleton instance
 algolia_service = AlgoliaService()

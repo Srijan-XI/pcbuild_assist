@@ -81,7 +81,8 @@ def main():
     
     for review in reviews:
         text = review.get('text', '')
-        if not text: continue
+        if not text or not isinstance(text, str) or len(text.strip()) == 0:
+            continue
         
         # Simple inclusion check (case insensitive?) 
         # The dataset seems to have proper casing "AMD Ryzen...", let's try case sensitive first or relaxed
@@ -102,7 +103,7 @@ def main():
                 updates[comp_id] = []
                 
             updates[comp_id].append({
-                "text": text,
+                "text": text.strip(),
                 "sentiment": review.get('sentiment'),
                 "author_age": review.get('age_group'),
                 "author_expertise": review.get('expertise'),

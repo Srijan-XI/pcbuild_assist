@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Cpu, Menu, Search as SearchIcon, ChevronDown } from 'lucide-react'
+import {
+    Cpu, Menu, Search as SearchIcon, ChevronDown,
+    Monitor, Gamepad2, CircuitBoard, MemoryStick,
+    Plug, HardDrive, Rocket, CheckCircle, Lightbulb
+} from 'lucide-react'
 import Builder from './Builder'
 import Search from "@/components/search"
 import './css/App.css'
@@ -12,7 +16,7 @@ const componentInfo = [
     {
         id: 'cpu',
         name: 'CPU (Processor)',
-        icon: '🧠',
+        icon: Cpu,
         image: '/images/cpu.png',
         description: 'The brain of your PC - handles all calculations and instructions',
         details: [
@@ -26,7 +30,7 @@ const componentInfo = [
     {
         id: 'gpu',
         name: 'GPU (Graphics Card)',
-        icon: '🎮',
+        icon: Gamepad2,
         image: '/images/gpu.png',
         description: 'Powers gaming, video editing, and visual workloads',
         details: [
@@ -40,7 +44,7 @@ const componentInfo = [
     {
         id: 'motherboard',
         name: 'Motherboard',
-        icon: '🔌',
+        icon: CircuitBoard,
         image: '/images/motherboard.png',
         description: 'The backbone connecting all components together',
         details: [
@@ -54,7 +58,7 @@ const componentInfo = [
     {
         id: 'ram',
         name: 'RAM (Memory)',
-        icon: '⚡',
+        icon: MemoryStick,
         image: '/images/ram.png',
         description: 'High-speed temporary storage for active tasks',
         details: [
@@ -68,7 +72,7 @@ const componentInfo = [
     {
         id: 'psu',
         name: 'PSU (Power Supply)',
-        icon: '🔋',
+        icon: Plug,
         image: '/images/psu.png',
         description: 'Provides stable power to all components',
         details: [
@@ -82,7 +86,7 @@ const componentInfo = [
     {
         id: 'storage',
         name: 'Storage (SSD/HDD)',
-        icon: '💾',
+        icon: HardDrive,
         image: '/images/storage.png',
         description: 'Permanent storage for OS, games, and files',
         details: [
@@ -212,7 +216,10 @@ function App() {
             <Navbar onNavigate={setCurrentPage} />
 
             <header className="app-header mt-20">
-                <h1>🖥️ PCBuild Assist</h1>
+                <h1 className="flex items-center justify-center gap-3">
+                    <Monitor className="text-blue-500" size={40} />
+                    PCBuild Assist
+                </h1>
                 <p>Smart PC Component Builder with Algolia</p>
                 <div className="status">
                     API Status: <span className={`status-badge ${apiStatus === 'checking' ? 'checking' : apiStatus}`}>
@@ -228,17 +235,23 @@ function App() {
 
                     <div className="features">
                         <div className="feature">
-                            <span className="icon">🔍</span>
+                            <span className="icon-wrapper bg-blue-500/10 p-4 rounded-full mb-4 inline-block">
+                                <SearchIcon className="text-blue-500" size={32} />
+                            </span>
                             <h3>Smart Search</h3>
                             <p>Find components instantly with Algolia-powered search</p>
                         </div>
                         <div className="feature">
-                            <span className="icon">✅</span>
+                            <span className="icon-wrapper bg-green-500/10 p-4 rounded-full mb-4 inline-block">
+                                <CheckCircle className="text-green-500" size={32} />
+                            </span>
                             <h3>Compatibility Check</h3>
                             <p>Automatic validation of socket, memory, and power compatibility</p>
                         </div>
                         <div className="feature">
-                            <span className="icon">💡</span>
+                            <span className="icon-wrapper bg-purple-500/10 p-4 rounded-full mb-4 inline-block">
+                                <Lightbulb className="text-purple-500" size={32} />
+                            </span>
                             <h3>Proactive Suggestions</h3>
                             <p>Get compatible component recommendations as you build</p>
                         </div>
@@ -262,9 +275,9 @@ function App() {
 
                     <button
                         onClick={() => setCurrentPage('builder')}
-                        className="search-btn"
+                        className="search-btn flex items-center justify-center gap-2"
                     >
-                        🚀 Start Building Now
+                        <Rocket size={20} /> Start Building Now
                     </button>
                 </section>
 
@@ -280,16 +293,22 @@ function App() {
                                 onClick={() => setSelectedComponent(selectedComponent === comp.id ? null : comp.id)}
                             >
                                 <div className="component-header">
-                                    <div className="component-image-wrapper">
+                                    <div className="component-image-wrapper relative flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden">
                                         <img
                                             src={comp.image}
                                             alt={comp.name}
                                             className="component-image"
-                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<div style="font-size: 3rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">${comp.icon}</div>` }}
+                                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                         />
+                                        {/* Fallback Icon (hidden by default, shown on error) */}
+                                        <div className="absolute inset-0 hidden items-center justify-center bg-slate-800 text-slate-400">
+                                            <comp.icon size={64} strokeWidth={1} />
+                                        </div>
                                     </div>
                                     <div className="component-title">
-                                        <span className="component-icon">{comp.icon}</span>
+                                        <span className="component-icon text-blue-400">
+                                            <comp.icon size={24} />
+                                        </span>
                                         <h3>{comp.name}</h3>
                                     </div>
                                 </div>
