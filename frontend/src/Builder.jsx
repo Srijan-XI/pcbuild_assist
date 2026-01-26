@@ -232,7 +232,7 @@ function Builder({ onBackHome }) {
         if (searchTerm.trim() === '') {
             setFilteredComponents(components)
         } else {
-            const filtered = components.filter(comp => 
+            const filtered = components.filter(comp =>
                 comp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 comp.brand?.toLowerCase().includes(searchTerm.toLowerCase())
             )
@@ -240,17 +240,7 @@ function Builder({ onBackHome }) {
         }
     }, [searchTerm, components])
 
-    useEffect(() => {
-        if (searchTerm.trim() === '') {
-            setFilteredComponents(components)
-        } else {
-            const filtered = components.filter(comp => 
-                comp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                comp.brand?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            setFilteredComponents(filtered)
-        }
-    }, [searchTerm, components])
+
 
     return (
         <div className="flex flex-col lg:flex-row max-w-7xl mx-auto pt-24 lg:pt-28 min-h-screen relative z-10">
@@ -303,9 +293,6 @@ function Builder({ onBackHome }) {
 
                 <div className="mb-6">
                     <AlgoliaSearch
-                        applicationId="2WP5J7FU02"
-                        apiKey="f96edc500dd27768d0e903a395da5442"
-                        indexName="pc_components"
                         componentType={activeCategory}
                         onSelectComponent={(hit) => togglePart(activeCategory, hit)}
                         darkMode={true}
@@ -441,7 +428,7 @@ function Builder({ onBackHome }) {
                             {searchTerm ? 'No Results Found' : 'No Components Found'}
                         </h3>
                         <p className="text-slate-400 max-w-md mx-auto">
-                            {searchTerm 
+                            {searchTerm
                                 ? `No ${activeCategory} components match "${searchTerm}". Try a different search term.`
                                 : 'Try selecting a different component category or check if the API is running.'
                             }

@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
-import algoliasearch from 'algoliasearch/lite'
+import { liteClient as algoliasearch } from 'algoliasearch/lite'
 import { InstantSearch, SearchBox, Hits, Highlight, Configure } from 'react-instantsearch'
 import { X } from 'lucide-react'
 
-const searchClient = algoliasearch('2WP5J7FU02', 'f96edc500dd27768d0e903a395da5442')
+const APP_ID = import.meta.env.VITE_ALGOLIA_APP_ID
+const SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_KEY
+
+const searchClient = algoliasearch(APP_ID, SEARCH_KEY)
 
 function Hit({ hit, onSelect }) {
   return (
@@ -40,13 +42,13 @@ function Hit({ hit, onSelect }) {
   )
 }
 
-export default function AlgoliaSearch({ 
-  applicationId = '2WP5J7FU02',
-  apiKey = 'f96edc500dd27768d0e903a395da5442', 
+export default function AlgoliaSearch({
+  applicationId = APP_ID,
+  apiKey = SEARCH_KEY,
   indexName = 'pc_components',
   onSelectComponent,
   componentType,
-  darkMode = true 
+  darkMode = true
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const searchBoxRef = useRef(null)
@@ -94,11 +96,11 @@ export default function AlgoliaSearch({
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Search Modal */}
           <div className="fixed inset-x-4 top-20 md:left-1/2 md:-translate-x-1/2 md:max-w-2xl z-50 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-h-[70vh] flex flex-col">
             <InstantSearch searchClient={searchClient} indexName={indexName}>
@@ -106,7 +108,7 @@ export default function AlgoliaSearch({
                 hitsPerPage={10}
                 {...(componentType && { filters: `type:${componentType}` })}
               />
-              
+
               {/* Header */}
               <div className="p-4 border-b border-white/10 flex items-center gap-3">
                 <div className="flex-1" ref={searchBoxRef}>

@@ -23,9 +23,9 @@ class AlgoliaService:
         # Client for search operations
         self.search_client = SearchClientSync(self.app_id, self.search_api_key)
         
-        # Initialize index references
-        self.index = self.admin_client.init_index(self.index_name)
-        self.search_index = self.search_client.init_index(self.index_name)
+        # Initialize index references - Removed in v4, use client methods with index_name
+        # self.index and self.search_index are not needed
+
     
     def search_components(
         self,
@@ -82,14 +82,16 @@ class AlgoliaService:
         
         try:
             response = self.search_client.search(
-                search_requests=[{
-                    "indexName": self.index_name,
-                    "query": query,
-                    "hitsPerPage": limit,
-                    "page": offset // limit,
-                    "facetFilters": facet_filters if facet_filters else [],
-                    "numericFilters": numeric_filters if numeric_filters else [],
-                }]
+                search_method_params={
+                    "requests": [{
+                        "indexName": self.index_name,
+                        "query": query,
+                        "hitsPerPage": limit,
+                        "page": offset // limit,
+                        "facetFilters": facet_filters if facet_filters else [],
+                        "numericFilters": numeric_filters if numeric_filters else [],
+                    }]
+                }
             )
             
             # Extract first result (we only sent one request)
@@ -143,8 +145,21 @@ class AlgoliaService:
                     search_params["facetFilters"].append(f"performance_tier:{value}")
         
         try:
-            response = self.search_index.search("", search_params)
-            return response.get("hits", [])
+            response = self.search_client.search(
+                search_method_params={
+                    "requests": [{
+                        "indexName": self.index_name,
+                        "query": "",
+                        "facetFilters": search_params.get("facetFilters", []),
+                        "hitsPerPage": limit,
+                        "analytics": True
+                    }]
+                }
+            )
+            
+            # Extract hits from first result
+            results = response.get("results", [{}])[0] if response.get("results") else {}
+            return results.get("hits", [])
         except Exception as e:
             print(f"Algolia search by type error: {e}")
             return []
@@ -160,9 +175,16 @@ class AlgoliaService:
             Component data or None
         """
         try:
-            results = self.search_index.search("", {
-                "filters": f"objectID:{component_id}"
-            })
+            response = self.search_client.search(
+                search_method_params={
+                    "requests": [{
+                        "indexName": self.index_name,
+                        "query": "",
+                        "filters": f"objectID:{component_id}"
+                    }]
+                }
+            )
+            results = response.get("results", [{}])[0] if response.get("results") else {}
             hits = results.get("hits", [])
             return hits[0] if hits else None
         except Exception as e:
@@ -189,8 +211,19 @@ class AlgoliaService:
             search_params["facetFilters"] = [f"type:{component_type}"]
         
         try:
-            response = self.search_index.search("", search_params)
-            return response.get("facets", {})
+            response = self.search_client.search(
+                search_method_params={
+                    "requests": [{
+                        "indexName": self.index_name,
+                        "query": "",
+                        "facets": search_params.get("facets", []),
+                        "hitsPerPage": 0,
+                        "facetFilters": search_params.get("facetFilters", [])
+                    }]
+                }
+            )
+            result = response.get("results", [{}])[0] if response.get("results") else {}
+            return result.get("facets", {})
         except Exception as e:
             print(f"Error fetching facets: {e}")
             return {}
@@ -211,7 +244,10 @@ class AlgoliaService:
                 component["objectID"] = component.get("id", "")
         
         try:
-            response = self.index.save_objects(components)
+            response = self.admin_client.save_objects(
+                index_name=self.index_name,
+                objects=components
+            )
             return {
                 "success": True,
                 "objectIDs": response.get("objectIDs", []),
@@ -229,7 +265,7 @@ class AlgoliaService:
             Clear operation response
         """
         try:
-            response = self.index.clear_objects()
+            response = self.admin_client.clear_objects(index_name=self.index_name)
             return {"success": True, "taskID": response.get("taskID")}
         except Exception as e:
             print(f"Error clearing index: {e}")
@@ -279,7 +315,10 @@ class AlgoliaService:
         }
         
         try:
-            response = self.index.set_settings(settings)
+            response = self.admin_client.set_settings(
+                index_name=self.index_name,
+                index_settings=settings
+            )
             return {"success": True, "taskID": response.get("taskID")}
         except Exception as e:
             print(f"Error configuring index settings: {e}")
