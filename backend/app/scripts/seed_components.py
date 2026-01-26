@@ -1,3 +1,4 @@
+import hashlib
 import csv
 import os
 import sys
@@ -23,6 +24,11 @@ COMPONENT_FILES = {
 }
 
 DATASET_DIR = Path(__file__).resolve().parent.parent.parent.parent / 'datasets' / 'csv'
+
+def generate_id(name: str, type: str) -> str:
+    """Generate stable ID using MD5"""
+    m = hashlib.md5(name.encode('utf-8'))
+    return f"{type.lower()}-{m.hexdigest()[:10]}"
 
 def extract_brand(name: str) -> str:
     """Extract brand from component name"""
@@ -88,14 +94,15 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
                 brand = extract_brand(name)
                 
                 # Create base component object
+                component_id = generate_id(name, component_type)
                 component = {
-                    "objectID": f"{component_type.lower()}-{hash(name)}", # Simple ID generation
-                    "id": f"{component_type.lower()}-{hash(name)}",
+                    "objectID": component_id,
+                    "id": component_id,
                     "type": component_type,
                     "name": name,
                     "brand": brand,
                     "price": price,
-                    "image": row.get('image', ''), # dataset might not have images, but schema has it
+                    "image": row.get('image', ''),
                     "specs": {},
                 }
 
@@ -107,10 +114,8 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
                         "boost_clock": row.get('boost_clock'),
                         "tdp": int(row.get('tdp')) if row.get('tdp') and row.get('tdp').isdigit() else None,
                         "graphics": row.get('graphics'),
-                        "socket": "Unknown" # CPU csv provided doesn't have socket, we might need to infer or it might be missing
+                        "socket": "Unknown" 
                     }
-                    # Try to infer socket from name for compatibility checks if missing
-                    # This is naive but better than nothing
                     if "AM5" in name: component['specs']['socket'] = "AM5"
                     elif "AM4" in name: component['specs']['socket'] = "AM4"
                     elif "LGA1700" in name or "Core i. 12" in name or "Core i. 13" in name or "Core i. 14" in name: component['specs']['socket'] = "LGA1700"
@@ -123,9 +128,7 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
                         "max_memory": int(row.get('max_memory')) if row.get('max_memory') and row.get('max_memory').isdigit() else None,
                         "memory_slots": int(row.get('memory_slots')) if row.get('memory_slots') and row.get('memory_slots').isdigit() else None,
                         "memory_type": "DDR5" if "DDR5" in name or "AM5" in row.get('socket', '') or "LGA1851" in row.get('socket', '') else "DDR4" 
-                        # Simple heuristic, ideally CSV has memory type
                     }
-                    # Improve memory type inference
                     if "DDR4" in name: component['specs']['memory_type'] = "DDR4"
                     elif "DDR5" in name: component['specs']['memory_type'] = "DDR5"
 
@@ -142,14 +145,13 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
 
                 elif component_type == 'RAM':
                     component['specs'] = {
-                        "speed": row.get('speed', ''), # e.g. DDR4-3200
-                        "modules": row.get('modules', ''), # e.g. 2 x 8GB
+                        "speed": row.get('speed', ''),
+                        "modules": row.get('modules', ''),
                         "price_per_gb": row.get('price_per_gb', ''),
                         "latency": row.get('cas_latency', '')
                     }
-                    # Extract type (DDR4/DDR5)
                     if "DDR5" in name or "DDR5" in str(row.get('speed', '')):
-                        component['type'] = 'RAM' # Keep type generic
+                        component['type'] = 'RAM'
                         component['specs']['type'] = 'DDR5'
                     elif "DDR4" in name or "DDR4" in str(row.get('speed', '')):
                         component['specs']['type'] = 'DDR4'
@@ -158,7 +160,7 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
                     component['specs'] = {
                         "capacity": row.get('capacity', ''),
                         "price_per_gb": row.get('price_per_gb', ''),
-                        "type": row.get('type', ''), # SSD/HDD
+                        "type": row.get('type', ''),
                         "cache": row.get('cache', ''),
                         "form_factor": row.get('form_factor', '')
                     }
@@ -166,10 +168,9 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
                 elif component_type == 'PSU':
                     component['specs'] = {
                         "wattage": row.get('wattage', ''),
-                        "efficiency": row.get('efficiency', ''), # 80+ Gold etc
+                        "efficiency": row.get('efficiency', ''), 
                         "modular": row.get('modular', '')
                     }
-                    # Clean wattage
                     if component['specs']['wattage']:
                         try:
                             w = component['specs']['wattage'].lower().replace('w', '')
@@ -178,7 +179,7 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
 
                 elif component_type == 'Case':
                     component['specs'] = {
-                        "type": row.get('type', ''), # ATX Mid Tower etc
+                        "type": row.get('type', ''),
                         "color": row.get('color', ''),
                         "side_panel": row.get('side_panel', '')
                     }
@@ -193,6 +194,10 @@ def process_file(filename: str, component_type: str) -> List[Dict[str, Any]]:
 def main():
     print("Starting data seeding...")
     
+    # Clear existing index
+    print("Clearing existing index...")
+    algolia_service.clear_index()
+
     # Configure index first
     print("Configuring Algolia index settings...")
     algolia_service.configure_index_settings()

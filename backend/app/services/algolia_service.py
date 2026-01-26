@@ -228,6 +228,30 @@ class AlgoliaService:
             print(f"Error fetching facets: {e}")
             return {}
     
+    def partial_update_components(self, updates: List[Dict]) -> Dict[str, Any]:
+        """
+        Partially update components (e.g. add reviews)
+        Args:
+            updates: List of objects with objectID and fields to update
+        """
+        try:
+            response = self.admin_client.partial_update_objects(
+                index_name=self.index_name,
+                objects=updates,
+                create_if_not_exists=False # Only update existing
+            )
+            if hasattr(response, 'task_id'):
+                return {"success": True, "taskID": response.task_id}
+            
+            # Fallback for dict-like response (older clients or mocks)
+            return {
+                "success": True,
+                "taskID": response.get("taskID") if isinstance(response, dict) else None
+            }
+        except Exception as e:
+            print(f"Error updating components: {e}")
+            return {"success": False, "error": str(e)}
+
     def index_components(self, components: List[Dict]) -> Dict[str, Any]:
         """
         Index components to Algolia (admin operation)
@@ -277,7 +301,9 @@ class AlgoliaService:
         """
         try:
             response = self.admin_client.clear_objects(index_name=self.index_name)
-            return {"success": True, "taskID": response.get("taskID")}
+            if hasattr(response, 'task_id'):
+                return {"success": True, "taskID": response.task_id}
+            return {"success": True, "taskID": response.get("taskID") if isinstance(response, dict) else None}
         except Exception as e:
             print(f"Error clearing index: {e}")
             return {"success": False, "error": str(e)}
@@ -330,7 +356,9 @@ class AlgoliaService:
                 index_name=self.index_name,
                 index_settings=settings
             )
-            return {"success": True, "taskID": response.get("taskID")}
+            if hasattr(response, 'task_id'):
+                return {"success": True, "taskID": response.task_id}
+            return {"success": True, "taskID": response.get("taskID") if isinstance(response, dict) else None}
         except Exception as e:
             print(f"Error configuring index settings: {e}")
             return {"success": False, "error": str(e)}
