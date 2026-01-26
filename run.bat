@@ -16,9 +16,17 @@ REM Activate virtual environment
 echo [1/4] Activating Python virtual environment...
 call .venv\Scripts\activate.bat
 
-REM Check if backend dependencies are installed
-echo [2/4] Checking backend dependencies...
+REM Check if backend .env exists
+echo [2/6] Checking backend configuration...
 cd backend
+if not exist ".env" (
+    echo [WARNING] backend\.env not found. Backend may fail without Algolia credentials.
+    echo Copy backend\.env.example to backend\.env and configure it.
+    timeout /t 2 /nobreak >nul
+)
+
+REM Check if backend dependencies are installed
+echo [3/6] Checking backend dependencies...
 python -c "import fastapi" 2>nul
 if errorlevel 1 (
     echo Installing backend dependencies...
@@ -26,16 +34,23 @@ if errorlevel 1 (
 )
 
 REM Start backend in a new window
-echo [3/4] Starting backend server (FastAPI)...
+echo [4/6] Starting backend server (FastAPI)...
 start "PCBuild Backend - FastAPI" cmd /k "cd /d %~dp0 && call .venv\Scripts\activate.bat && cd backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000"
 
 REM Wait a moment for backend to initialize
 timeout /t 3 /nobreak >nul
 
-REM Start frontend in a new window
-echo [4/4] Starting frontend server (Vite)...
+REM Check frontend dependencies
+echo [5/6] Checking frontend dependencies...
 cd ..\frontend
-start "PCBuild Frontend - Vite" cmd /k "cd /d %~dp0frontend && npm run dev"
+if not exist "node_modules" (
+    echo Installing frontend dependencies...
+    npm install
+)
+
+REM Start frontend in a new window
+echo [6/6] Starting frontend server (Vite)...
+start "PCBuild Frontend - Vite" cmd /k "cd /d %~dp0 && cd frontend && npm run dev"
 
 echo.
 echo ========================================

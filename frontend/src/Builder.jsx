@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import {
     Cpu, Monitor, HardDrive, Layers, Zap, Box, Trash2, CheckCircle, AlertCircle,
-    ShoppingCart, X, Plus, Info, ChevronRight, Search, Filter
+    ShoppingCart, X, Plus, Info, ChevronRight, Search as SearchIcon, Filter
 } from 'lucide-react'
-import AlgoliaSearch from './components/AlgoliaSearch'
-import './algolia-search.css'
+import Search from "@/components/search"
+import './css/algolia-search.css'
 
 const CATEGORIES = [
     { key: 'CPU', label: 'CPU', icon: Cpu },
@@ -43,9 +43,9 @@ const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compati
             )}
 
             <div className={`
-        fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] bg-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl
+        fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] clay-sidebar
         transform transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
-        ${isOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:static lg:h-[calc(100vh-100px)] lg:bg-slate-900/50 lg:rounded-3xl lg:border lg:w-96 lg:block lg:sticky lg:top-24
+        ${isOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:static lg:h-[calc(100vh-100px)] lg:rounded-3xl lg:w-96 lg:block lg:sticky lg:top-24
       `}>
                 <div className="h-full flex flex-col p-6">
                     <div className="flex justify-between items-center mb-8">
@@ -291,17 +291,28 @@ function Builder({ onBackHome }) {
                     </div>
                 )}
 
-                <div className="mb-6">
-                    <AlgoliaSearch
-                        componentType={activeCategory}
-                        onSelectComponent={(hit) => togglePart(activeCategory, hit)}
+                <div className="mb-8">
+                    <Search
+                        applicationId={import.meta.env.VITE_ALGOLIA_APP_ID}
+                        apiKey={import.meta.env.VITE_ALGOLIA_SEARCH_KEY}
+                        indexName={import.meta.env.VITE_ALGOLIA_INDEX_NAME || 'pc_components'}
+                        attributes={{
+                            primaryText: "name",
+                            secondaryText: "brand",
+                            tertiaryText: "price",
+                            url: "",
+                            image: "image"
+                        }}
+                        filters={`type:"${activeCategory}"`}
                         darkMode={true}
+                        onSelect={(hit) => togglePart(activeCategory, hit)}
+                        className="shadow-lg"
                     />
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-8">
                     <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input
                             type="text"
                             placeholder={`Filter ${activeCategory} locally...`}
@@ -320,7 +331,7 @@ function Builder({ onBackHome }) {
                     </div>
                 </div>
 
-                <div className="sticky top-20 z-20 -mx-4 px-4 py-4 mb-4 bg-slate-950/80 backdrop-blur-xl border-y border-white/5 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mx-0">
+                <div className="sticky top-20 z-20 -mx-4 px-4 py-6 mb-8 bg-slate-950/90 backdrop-blur-xl border-y border-white/5 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mx-0 lg:mb-8">
                     <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide snap-x">
                         {CATEGORIES.map((cat) => {
                             const Icon = cat.icon
@@ -332,12 +343,12 @@ function Builder({ onBackHome }) {
                                     key={cat.key}
                                     onClick={() => setActiveCategory(cat.key)}
                                     className={`
-                                        flex items-center space-x-3 px-5 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 snap-start border
+                                        flex items-center space-x-3 px-5 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 snap-start clay-category-btn
                                         ${isActive
-                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/50 scale-105'
+                                            ? 'active text-white scale-105'
                                             : isSelected
-                                                ? 'bg-slate-900 border-green-500/30 text-green-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]'
-                                                : 'bg-slate-900 border-white/5 text-slate-400 hover:bg-slate-800 hover:border-slate-700 hover:text-slate-200'
+                                                ? 'text-green-400 border-green-500/30 shadow-[inset_0_0_10px_rgba(74,222,128,0.1)]'
+                                                : 'text-slate-400 hover:text-slate-200'
                                         }
                                     `}
                                 >
@@ -360,11 +371,8 @@ function Builder({ onBackHome }) {
                         {filteredComponents.map(part => {
                             const isSelected = build[activeCategory]?.id === part.id
                             return (
-                                <div key={part.id} className={`relative group rounded-2xl p-5 border transition-all duration-300 backdrop-blur-sm
-                                    ${isSelected
-                                        ? 'bg-blue-900/10 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/50'
-                                        : 'bg-slate-900/60 border-white/5 hover:border-white/20 hover:bg-slate-800/80 hover:-translate-y-1 hover:shadow-xl'
-                                    }`}
+                                <div key={part.id} className={`relative group p-5 transition-all duration-300 clay-card-interactive
+                                    ${isSelected ? 'selected' : ''}`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
                                         <div className={`h-14 w-14 rounded-xl flex items-center justify-center text-slate-300 shadow-inner
@@ -422,7 +430,7 @@ function Builder({ onBackHome }) {
                 {filteredComponents.length === 0 && !loading && (
                     <div className="mt-12 text-center py-20 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/30">
                         <div className="inline-flex bg-slate-800/50 p-5 rounded-full mb-6">
-                            {searchTerm ? <Search size={40} className="text-slate-600" /> : <Plus size={40} className="text-slate-600" />}
+                            {searchTerm ? <SearchIcon size={40} className="text-slate-600" /> : <Plus size={40} className="text-slate-600" />}
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">
                             {searchTerm ? 'No Results Found' : 'No Components Found'}

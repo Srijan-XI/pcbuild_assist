@@ -269,4 +269,29 @@
     .md\:flex {
         display: flex;
     }
+
+    .md\:hidden {
+        display: none;
+    }
+}
+
+.mt-20 {
+    margin-top: 5rem;
+}
+
+.space-x-1>*+* {
+    margin-left: 0.25rem;
+}
+
+.space-y-2>*+* {
+    margin-top: 0.5rem;
+}
+
+.bg-slate-900\/95 {
+    background-color: rgba(15, 23, 42, 0.95);
+}
+
+.backdrop-blur-lg {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }

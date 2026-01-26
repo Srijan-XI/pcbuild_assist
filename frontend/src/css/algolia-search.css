@@ -6,22 +6,28 @@
 
 .ais-SearchBox-input {
   width: 100%;
-  background-color: rgba(30, 41, 59, 0.5);
+  background-color: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 0.625rem 1rem;
+  border-radius: 1rem;
+  padding: 0.8rem 1.25rem 0.8rem 2.5rem;
+  /* More left padding for icon */
   color: white;
-  font-size: 0.875rem;
-}
-
-.ais-SearchBox-input::placeholder {
-  color: rgba(148, 163, 184, 0.8);
+  font-size: 1rem;
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.2),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
 }
 
 .ais-SearchBox-input:focus {
   outline: none;
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  background-color: rgba(30, 41, 59, 0.6);
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.2),
+    0 0 15px rgba(102, 126, 234, 0.2);
 }
 
 .ais-SearchBox-submit,
@@ -88,6 +94,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

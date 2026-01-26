@@ -248,10 +248,21 @@ class AlgoliaService:
                 index_name=self.index_name,
                 objects=components
             )
+            # Handle potential list response (Algolia v4 batching)
+            task_ids = []
+            object_ids = []
+            
+            # If response is a list, iterate; if dict, check normally; if object, check attributes
+            if isinstance(response, list):
+                # Only try to extract info if we really need it, otherwise just success
+                return {"success": True, "count": len(components)}
+            elif hasattr(response, 'task_id'):
+                return {"success": True, "taskID": response.task_id}
+            
+            # Fallback for dict-like
             return {
                 "success": True,
-                "objectIDs": response.get("objectIDs", []),
-                "taskID": response.get("taskID")
+                "taskID": response.get("taskID") if isinstance(response, dict) else None
             }
         except Exception as e:
             print(f"Error indexing components: {e}")

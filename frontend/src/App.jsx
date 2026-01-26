@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Cpu, Menu, Search, ChevronDown } from 'lucide-react'
+import { Cpu, Menu, Search as SearchIcon, ChevronDown } from 'lucide-react'
 import Builder from './Builder'
-import './App.css'
-import './components-education.css'
-import './builder-styles.css'
-import './tailwind-fallback.css'
+import Search from "@/components/search"
+import './css/App.css'
+import './css/components-education.css'
+import './css/builder-styles.css'
+import './css/tailwind-fallback.css'
 
 // PC Component educational data with images
 const componentInfo = [
@@ -96,67 +97,74 @@ const componentInfo = [
 
 const Navbar = ({ onNavigate }) => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    
+
     const menuItems = [
         { label: 'Builder', onClick: () => { onNavigate('builder'); setMobileMenuOpen(false) } },
         { label: 'Learn', onClick: () => { document.querySelector('#learn')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false) } },
         { label: 'Guides', onClick: () => { document.querySelector('#guides')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false) } },
         { label: 'Community', onClick: () => { setMobileMenuOpen(false) } }
     ]
-    
+
     return (
-    <nav className="fixed w-full z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-20">
-                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigate('home')}>
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
-                        <Cpu className="h-6 w-6 text-white" strokeWidth={2} />
+        <nav className="fixed w-full z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-20">
+                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigate('home')}>
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+                            <Cpu className="h-6 w-6 text-white" strokeWidth={2} />
+                        </div>
+                        <span className="text-2xl font-bold text-white tracking-tight">
+                            PCBuild<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Assist</span>
+                        </span>
                     </div>
-                    <span className="text-2xl font-bold text-white tracking-tight">
-                        PCBuild<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Assist</span>
-                    </span>
-                </div>
 
-                <div className="hidden md:flex items-center space-x-1">
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.label}
-                            onClick={item.onClick}
-                            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                        >
-                            {item.label}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <button className="p-2 text-slate-400 hover:text-white transition-colors">
-                        <Search size={20} />
-                    </button>
-                    <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                        <Menu className="text-slate-300" />
-                    </button>
-                </div>
-            </div>
-            
-            {/* Mobile Menu */}
-            {mobileMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-b border-white/10 shadow-xl">
-                    <div className="px-4 py-4 space-y-2">
+                    <div className="hidden md:flex items-center space-x-1">
                         {menuItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={item.onClick}
-                                className="w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                             >
                                 {item.label}
                             </button>
                         ))}
                     </div>
+
+                    <div className="flex items-center gap-4">
+                        <button className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all text-sm group">
+                            <SearchIcon size={16} className="group-hover:text-white transition-colors" />
+                            <span className="mr-4">Search...</span>
+                            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex">
+                                <span className="text-xs">⌘</span>K
+                            </kbd>
+                        </button>
+                        <button className="md:hidden p-2 text-slate-400 hover:text-white transition-colors">
+                            <SearchIcon size={20} />
+                        </button>
+                        <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                            <Menu className="text-slate-300" />
+                        </button>
+                    </div>
                 </div>
-            )}
-        </div>
-    </nav>
+
+                {/* Mobile Menu */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden absolute top-20 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-b border-white/10 shadow-xl">
+                        <div className="px-4 py-4 space-y-2">
+                            {menuItems.map((item) => (
+                                <button
+                                    key={item.label}
+                                    onClick={item.onClick}
+                                    className="w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </nav>
     )
 }
 
@@ -236,9 +244,25 @@ function App() {
                         </div>
                     </div>
 
+                    <div className="max-w-xl mx-auto mt-12 mb-8">
+                        <Search
+                            applicationId={import.meta.env.VITE_ALGOLIA_APP_ID}
+                            apiKey={import.meta.env.VITE_ALGOLIA_SEARCH_KEY}
+                            indexName={import.meta.env.VITE_ALGOLIA_INDEX_NAME || 'pc_components'}
+                            attributes={{
+                                primaryText: "name",
+                                secondaryText: "brand",
+                                ternaryText: "price",
+                                image: "image"
+                            }}
+                            darkMode={true}
+                            className="shadow-2xl"
+                        />
+                    </div>
+
                     <button
                         onClick={() => setCurrentPage('builder')}
-                        className="search-btn mt-12"
+                        className="search-btn"
                     >
                         🚀 Start Building Now
                     </button>
@@ -257,9 +281,9 @@ function App() {
                             >
                                 <div className="component-header">
                                     <div className="component-image-wrapper">
-                                        <img 
-                                            src={comp.image} 
-                                            alt={comp.name} 
+                                        <img
+                                            src={comp.image}
+                                            alt={comp.name}
                                             className="component-image"
                                             onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<div style="font-size: 3rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">${comp.icon}</div>` }}
                                         />
