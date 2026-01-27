@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://pcassist-back.vercel.app/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://pcassist-back.vercel.app/health"
+    }
+  ]
+}

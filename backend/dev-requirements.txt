@@ -1,0 +1,4 @@
+pandas>=2.2.0
+numpy>=1.26.0
+pytest>=8.3.0
+-r requirements.txt
