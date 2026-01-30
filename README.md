@@ -52,9 +52,6 @@ This application demonstrates how contextual data retrieval can enhance user exp
 - **25+ CSV datasets** with PC components
 - 10,000+ components across all categories
 
-## 📦 Project Structure
-
-```
 pcbuild-assist/
 ├── backend/
 │   ├── app/

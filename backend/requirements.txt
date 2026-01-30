@@ -5,3 +5,9 @@ python-dotenv>=1.0.0
 pydantic>=2.10.0
 pydantic-settings>=2.7.0
 httpx>=0.28.0
+
+# API Enhancements
+cachetools>=5.3.0
+slowapi>=0.1.9
+structlog>=24.1.0
+python-json-logger>=2.0.0

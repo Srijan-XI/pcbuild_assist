@@ -1,10 +1,322 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
     Cpu, Monitor, HardDrive, Layers, Zap, Box, Trash2, CheckCircle, AlertCircle,
-    ShoppingCart, X, Plus, Info, ChevronRight, Search as SearchIcon, Filter
+    ShoppingCart, X, Plus, Info, ChevronRight, Search as SearchIcon, Filter,
+    Undo2, Redo2, Share2, Copy, Download, Upload, Sparkles, RotateCcw, Star, TrendingUp, Scale
 } from 'lucide-react'
 import Search from "@/components/search"
 import './css/algolia-search.css'
+
+// ==================== BUILD PRESETS ====================
+const BUILD_PRESETS = [
+    {
+        id: 'budget-gaming',
+        name: 'Budget Gaming',
+        icon: Sparkles,
+        description: 'Great 1080p gaming under $800',
+        color: 'from-green-500 to-emerald-600',
+        budget: 800,
+        targets: {
+            CPU: { brand: 'AMD', tier: 'budget', maxPrice: 150 },
+            GPU: { tier: 'budget', maxPrice: 250 },
+            RAM: { capacity: '16GB', maxPrice: 60 },
+            Storage: { type: 'SSD', maxPrice: 80 },
+            PSU: { wattage: 550, maxPrice: 70 },
+            Motherboard: { tier: 'budget', maxPrice: 120 }
+        }
+    },
+    {
+        id: 'mid-range-gaming',
+        name: 'Mid-Range Gaming',
+        icon: TrendingUp,
+        description: 'Solid 1440p performance ~$1200',
+        color: 'from-blue-500 to-indigo-600',
+        budget: 1200,
+        targets: {
+            CPU: { tier: 'mid-range', maxPrice: 250 },
+            GPU: { tier: 'mid-range', maxPrice: 400 },
+            RAM: { capacity: '32GB', maxPrice: 100 },
+            Storage: { type: 'NVMe', maxPrice: 120 },
+            PSU: { wattage: 750, maxPrice: 100 },
+            Motherboard: { tier: 'mid-range', maxPrice: 180 }
+        }
+    },
+    {
+        id: 'high-end-gaming',
+        name: 'High-End Gaming',
+        icon: Star,
+        description: '4K gaming & streaming $2000+',
+        color: 'from-purple-500 to-pink-600',
+        budget: 2500,
+        targets: {
+            CPU: { tier: 'high-end', maxPrice: 450 },
+            GPU: { tier: 'high-end', maxPrice: 800 },
+            RAM: { capacity: '32GB', maxPrice: 150 },
+            Storage: { type: 'NVMe', maxPrice: 200 },
+            PSU: { wattage: 1000, maxPrice: 180 },
+            Motherboard: { tier: 'high-end', maxPrice: 350 }
+        }
+    },
+    {
+        id: 'workstation',
+        name: 'Workstation',
+        icon: Scale,
+        description: 'Content creation & productivity',
+        color: 'from-orange-500 to-red-600',
+        budget: 3000,
+        targets: {
+            CPU: { cores: 12, tier: 'high-end', maxPrice: 550 },
+            GPU: { vram: '12GB', maxPrice: 600 },
+            RAM: { capacity: '64GB', maxPrice: 250 },
+            Storage: { type: 'NVMe', capacity: '2TB', maxPrice: 250 },
+            PSU: { wattage: 850, maxPrice: 150 },
+            Motherboard: { tier: 'high-end', maxPrice: 300 }
+        }
+    }
+]
+
+// ==================== LOCAL STORAGE UTILS ====================
+const STORAGE_KEYS = {
+    BUILD: 'pcbuild_current_build',
+    HISTORY: 'pcbuild_build_history',
+    SAVED_BUILDS: 'pcbuild_saved_builds',
+    COMPARE_LIST: 'pcbuild_compare_list'
+}
+
+const loadFromStorage = (key, defaultValue = null) => {
+    try {
+        const item = localStorage.getItem(key)
+        return item ? JSON.parse(item) : defaultValue
+    } catch (e) {
+        console.error('Error loading from localStorage:', e)
+        return defaultValue
+    }
+}
+
+const saveToStorage = (key, value) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(value))
+    } catch (e) {
+        console.error('Error saving to localStorage:', e)
+    }
+}
+
+// ==================== BUILD HISTORY HOOK (Undo/Redo) ====================
+const useBuildHistory = (initialBuild = {}) => {
+    const [history, setHistory] = useState(() => {
+        const saved = loadFromStorage(STORAGE_KEYS.HISTORY)
+        return saved || { past: [], present: initialBuild, future: [] }
+    })
+
+    const canUndo = history.past.length > 0
+    const canRedo = history.future.length > 0
+
+    const setBuild = useCallback((newBuildOrUpdater) => {
+        setHistory(prev => {
+            const newBuild = typeof newBuildOrUpdater === 'function'
+                ? newBuildOrUpdater(prev.present)
+                : newBuildOrUpdater
+            
+            const newHistory = {
+                past: [...prev.past, prev.present].slice(-20), // Keep last 20 states
+                present: newBuild,
+                future: []
+            }
+            saveToStorage(STORAGE_KEYS.HISTORY, newHistory)
+            saveToStorage(STORAGE_KEYS.BUILD, newBuild)
+            return newHistory
+        })
+    }, [])
+
+    const undo = useCallback(() => {
+        setHistory(prev => {
+            if (prev.past.length === 0) return prev
+            const newHistory = {
+                past: prev.past.slice(0, -1),
+                present: prev.past[prev.past.length - 1],
+                future: [prev.present, ...prev.future]
+            }
+            saveToStorage(STORAGE_KEYS.HISTORY, newHistory)
+            saveToStorage(STORAGE_KEYS.BUILD, newHistory.present)
+            return newHistory
+        })
+    }, [])
+
+    const redo = useCallback(() => {
+        setHistory(prev => {
+            if (prev.future.length === 0) return prev
+            const newHistory = {
+                past: [...prev.past, prev.present],
+                present: prev.future[0],
+                future: prev.future.slice(1)
+            }
+            saveToStorage(STORAGE_KEYS.HISTORY, newHistory)
+            saveToStorage(STORAGE_KEYS.BUILD, newHistory.present)
+            return newHistory
+        })
+    }, [])
+
+    const clearHistory = useCallback(() => {
+        const newHistory = { past: [], present: {}, future: [] }
+        setHistory(newHistory)
+        saveToStorage(STORAGE_KEYS.HISTORY, newHistory)
+        saveToStorage(STORAGE_KEYS.BUILD, {})
+    }, [])
+
+    return {
+        build: history.present,
+        setBuild,
+        undo,
+        redo,
+        canUndo,
+        canRedo,
+        clearHistory,
+        historyLength: history.past.length
+    }
+}
+
+// ==================== SHARE/EXPORT UTILS ====================
+const generateShareCode = (build) => {
+    const buildData = Object.entries(build).map(([key, part]) => ({
+        k: key,
+        id: part.id,
+        n: part.name?.substring(0, 30)
+    }))
+    return btoa(JSON.stringify(buildData))
+}
+
+const parseBuildFromCode = (code) => {
+    try {
+        const data = JSON.parse(atob(code))
+        return data.reduce((acc, item) => {
+            acc[item.k] = { id: item.id, name: item.n, _fromShare: true }
+            return acc
+        }, {})
+    } catch (e) {
+        return null
+    }
+}
+
+const exportBuildToJSON = (build, totalCost, totalPower) => {
+    const exportData = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        totalCost,
+        totalPower,
+        components: build
+    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pcbuild-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+}
+
+// ==================== COMPARISON PANEL ====================
+const ComparisonPanel = ({ compareList, onRemove, onClear }) => {
+    if (compareList.length === 0) return null
+
+    const allSpecs = [...new Set(compareList.flatMap(item => Object.keys(item.specs || {})))]
+
+    return (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-white/10 shadow-2xl transform transition-all">
+            <div className="max-w-7xl mx-auto p-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Scale size={20} className="text-blue-400" />
+                        Compare ({compareList.length}/3)
+                    </h3>
+                    <button onClick={onClear} className="text-slate-400 hover:text-red-400 text-sm flex items-center gap-1">
+                        <X size={14} /> Clear All
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {compareList.map((item, idx) => (
+                        <div key={item.id || idx} className="bg-slate-800/50 rounded-xl p-4 border border-white/5 relative">
+                            <button 
+                                onClick={() => onRemove(item.id)}
+                                className="absolute top-2 right-2 p-1 text-slate-500 hover:text-red-400 rounded"
+                            >
+                                <X size={14} />
+                            </button>
+                            <h4 className="font-semibold text-white text-sm truncate pr-6">{item.name}</h4>
+                            <p className="text-green-400 font-bold">${item.price?.toFixed(2)}</p>
+                            <div className="mt-2 space-y-1">
+                                {allSpecs.slice(0, 5).map(spec => (
+                                    <div key={spec} className="flex justify-between text-xs">
+                                        <span className="text-slate-500">{spec}:</span>
+                                        <span className="text-slate-300">{item.specs?.[spec] || '-'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                    {compareList.length < 3 && (
+                        <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 flex items-center justify-center text-slate-500 text-sm">
+                            Add more to compare
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ==================== PRESET SELECTOR ====================
+const PresetSelector = ({ onSelectPreset, currentBudget }) => {
+    const [isOpen, setIsOpen] = useState(false)
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-purple-500/20 transition-all"
+            >
+                <Sparkles size={16} />
+                Build Presets
+                <ChevronRight size={16} className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
+                    <div className="absolute top-full mt-2 left-0 z-40 w-80 bg-slate-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+                        <div className="p-3 border-b border-white/5">
+                            <p className="text-xs text-slate-400">Quick-start with a preset build</p>
+                        </div>
+                        <div className="p-2 space-y-1">
+                            {BUILD_PRESETS.map(preset => {
+                                const Icon = preset.icon
+                                return (
+                                    <button
+                                        key={preset.id}
+                                        onClick={() => { onSelectPreset(preset); setIsOpen(false) }}
+                                        className="w-full p-3 rounded-xl hover:bg-white/5 transition-colors text-left group"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className={`p-2 rounded-lg bg-gradient-to-br ${preset.color}`}>
+                                                <Icon size={18} className="text-white" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold text-white text-sm group-hover:text-blue-400 transition-colors">
+                                                    {preset.name}
+                                                </h4>
+                                                <p className="text-xs text-slate-400">{preset.description}</p>
+                                                <p className="text-xs text-green-400 mt-1">~${preset.budget}</p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    )
+}
 
 const CATEGORIES = [
     { key: 'CPU', label: 'CPU', icon: Cpu },
@@ -15,11 +327,26 @@ const CATEGORIES = [
     { key: 'PSU', label: 'Power Supply', icon: Zap },
 ]
 
-const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compatibilityIssues }) => {
+const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compatibilityIssues, onUndo, onRedo, canUndo, canRedo, onShare, onExport }) => {
     const [isOpen, setIsOpen] = useState(false)
+    const [shareTooltip, setShareTooltip] = useState(false)
     const filledSlots = Object.keys(build).length
     const totalSlots = CATEGORIES.length
     const progress = (filledSlots / totalSlots) * 100
+
+    const handleShare = async () => {
+        const shareCode = onShare()
+        const shareUrl = `${window.location.origin}${window.location.pathname}?build=${shareCode}`
+        
+        try {
+            await navigator.clipboard.writeText(shareUrl)
+            setShareTooltip(true)
+            setTimeout(() => setShareTooltip(false), 2000)
+        } catch (e) {
+            // Fallback for browsers that don't support clipboard
+            prompt('Copy this link:', shareUrl)
+        }
+    }
 
     return (
         <>
@@ -31,7 +358,7 @@ const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compati
             >
                 <ShoppingCart size={24} />
                 {filledSlots > 0 && (
-                    <span className="font-bold bg-white/20 px-2 py-0.5 rounded-full text-sm">${totalCost}</span>
+                    <span className="font-bold bg-white/20 px-2 py-0.5 rounded-full text-sm">${totalCost.toFixed(0)}</span>
                 )}
             </button>
 
@@ -48,22 +375,71 @@ const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compati
         ${isOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:static lg:h-[calc(100vh-100px)] lg:rounded-3xl lg:w-96 lg:block lg:sticky lg:top-24
       `}>
                 <div className="h-full flex flex-col p-6">
-                    <div className="flex justify-between items-center mb-8">
+                    <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-2xl font-bold text-white tracking-tight">Your Build</h2>
                             <p className="text-slate-400 text-sm mt-1">{filledSlots} of {totalSlots} components</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={onClear} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-red-400 transition-colors" title="Clear Build">
-                                <Trash2 size={18} />
-                            </button>
+                        <div className="flex items-center gap-1">
                             <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-400">
-                                <X size={24} />
+                                <X size={20} />
                             </button>
                         </div>
                     </div>
 
-                    <div className="mb-8 relative group">
+                    {/* Action Buttons Row */}
+                    <div className="flex items-center gap-2 mb-6">
+                        <button 
+                            onClick={onUndo} 
+                            disabled={!canUndo}
+                            className={`p-2 rounded-lg transition-colors ${canUndo ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'text-slate-600 cursor-not-allowed'}`}
+                            title="Undo"
+                        >
+                            <Undo2 size={16} />
+                        </button>
+                        <button 
+                            onClick={onRedo}
+                            disabled={!canRedo}
+                            className={`p-2 rounded-lg transition-colors ${canRedo ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'text-slate-600 cursor-not-allowed'}`}
+                            title="Redo"
+                        >
+                            <Redo2 size={16} />
+                        </button>
+                        <div className="flex-1" />
+                        <div className="relative">
+                            <button 
+                                onClick={handleShare}
+                                disabled={filledSlots === 0}
+                                className={`p-2 rounded-lg transition-colors ${filledSlots > 0 ? 'hover:bg-white/5 text-slate-400 hover:text-blue-400' : 'text-slate-600 cursor-not-allowed'}`}
+                                title="Share Build"
+                            >
+                                <Share2 size={16} />
+                            </button>
+                            {shareTooltip && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-green-500 text-white text-xs rounded whitespace-nowrap">
+                                    Link copied!
+                                </div>
+                            )}
+                        </div>
+                        <button 
+                            onClick={onExport}
+                            disabled={filledSlots === 0}
+                            className={`p-2 rounded-lg transition-colors ${filledSlots > 0 ? 'hover:bg-white/5 text-slate-400 hover:text-green-400' : 'text-slate-600 cursor-not-allowed'}`}
+                            title="Export JSON"
+                        >
+                            <Download size={16} />
+                        </button>
+                        <button 
+                            onClick={onClear}
+                            disabled={filledSlots === 0}
+                            className={`p-2 rounded-lg transition-colors ${filledSlots > 0 ? 'hover:bg-white/5 text-slate-400 hover:text-red-400' : 'text-slate-600 cursor-not-allowed'}`}
+                            title="Clear Build"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+
+                    <div className="mb-6 relative group">
                         <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
@@ -151,12 +527,39 @@ function Builder({ onBackHome }) {
     const [components, setComponents] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const [build, setBuild] = useState({})
     const [activeCategory, setActiveCategory] = useState('CPU')
     const [compatibilityIssues, setCompatibilityIssues] = useState([])
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredComponents, setFilteredComponents] = useState([])
+    const [compareList, setCompareList] = useState(() => loadFromStorage(STORAGE_KEYS.COMPARE_LIST, []))
+    const [selectedPreset, setSelectedPreset] = useState(null)
 
+    // Use build history hook for undo/redo and persistence
+    const { 
+        build, 
+        setBuild, 
+        undo, 
+        redo, 
+        canUndo, 
+        canRedo, 
+        clearHistory 
+    } = useBuildHistory(loadFromStorage(STORAGE_KEYS.BUILD, {}))
+
+    // Load shared build from URL on mount
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const sharedBuild = params.get('build')
+        if (sharedBuild) {
+            const parsed = parseBuildFromCode(sharedBuild)
+            if (parsed) {
+                setBuild(parsed)
+                // Clean URL
+                window.history.replaceState({}, '', window.location.pathname)
+            }
+        }
+    }, [])
+
+    // Compatibility checking
     useEffect(() => {
         const issues = []
         if (build.CPU && build.Motherboard) {
@@ -197,7 +600,7 @@ function Builder({ onBackHome }) {
         }
     }
 
-    const togglePart = (category, part) => {
+    const togglePart = useCallback((category, part) => {
         setBuild(prev => {
             const newBuild = { ...prev }
             if (newBuild[category] && newBuild[category].id === part.id) {
@@ -207,20 +610,70 @@ function Builder({ onBackHome }) {
             }
             return newBuild
         })
-    }
+    }, [setBuild])
 
-    const removePart = (category) => {
+    const removePart = useCallback((category) => {
         setBuild(prev => {
             const newBuild = { ...prev }
             delete newBuild[category]
             return newBuild
         })
-    }
+    }, [setBuild])
 
-    const clearBuild = () => setBuild({})
+    const clearBuild = useCallback(() => {
+        clearHistory()
+    }, [clearHistory])
 
-    const totalCost = Object.values(build).reduce((sum, part) => sum + (part.price || 0), 0)
-    const totalPower = Object.values(build).reduce((sum, part) => sum + (part.tdp || part.power || 0), 0) + 50
+    // Comparison functions
+    const addToCompare = useCallback((component) => {
+        setCompareList(prev => {
+            if (prev.length >= 3) return prev
+            if (prev.find(c => c.id === component.id)) return prev
+            const newList = [...prev, component]
+            saveToStorage(STORAGE_KEYS.COMPARE_LIST, newList)
+            return newList
+        })
+    }, [])
+
+    const removeFromCompare = useCallback((componentId) => {
+        setCompareList(prev => {
+            const newList = prev.filter(c => c.id !== componentId)
+            saveToStorage(STORAGE_KEYS.COMPARE_LIST, newList)
+            return newList
+        })
+    }, [])
+
+    const clearCompare = useCallback(() => {
+        setCompareList([])
+        saveToStorage(STORAGE_KEYS.COMPARE_LIST, [])
+    }, [])
+
+    // Share/Export functions
+    const handleShare = useCallback(() => {
+        return generateShareCode(build)
+    }, [build])
+
+    const handleExport = useCallback(() => {
+        exportBuildToJSON(build, totalCost, totalPower)
+    }, [build])
+
+    // Preset handler
+    const handleSelectPreset = useCallback((preset) => {
+        setSelectedPreset(preset)
+        // Clear current build and start fresh with preset guidance
+        clearHistory()
+        setActiveCategory('CPU')
+    }, [clearHistory])
+
+    const totalCost = useMemo(() => 
+        Object.values(build).reduce((sum, part) => sum + (part.price || 0), 0), 
+        [build]
+    )
+    
+    const totalPower = useMemo(() => 
+        Object.values(build).reduce((sum, part) => sum + (part.tdp || part.specs?.tdp || part.power || 0), 0) + 50,
+        [build]
+    )
 
     useEffect(() => {
         if (activeCategory) {
@@ -253,10 +706,21 @@ function Builder({ onBackHome }) {
                             <Layers className="text-blue-500" />
                             System <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Builder</span>
                         </h1>
-                        <p className="text-slate-400 text-sm mt-1">Assemble your ultimate gaming rig.</p>
+                        <p className="text-slate-400 text-sm mt-1">
+                            {selectedPreset 
+                                ? `Building: ${selectedPreset.name} (~$${selectedPreset.budget})`
+                                : 'Assemble your ultimate gaming rig.'
+                            }
+                        </p>
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {/* Preset Selector */}
+                        <PresetSelector 
+                            onSelectPreset={handleSelectPreset}
+                            currentBudget={totalCost}
+                        />
+                        
                         {/* Status Indicators */}
                         {compatibilityIssues.length > 0 ? (
                             <div className="bg-red-500/10 border border-red-500/20 rounded-full px-3 py-1 flex items-center text-red-400 text-xs font-medium animate-pulse">
@@ -489,24 +953,41 @@ function Builder({ onBackHome }) {
                                         )}
                                     </div>
 
-                                    <button
-                                        onClick={() => togglePart(activeCategory, part)}
-                                        className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center
-                                            ${isSelected
-                                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                                : 'bg-white/5 text-white hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20'
-                                            }`}
-                                    >
-                                        {isSelected ? (
-                                            <>
-                                                <Trash2 size={16} className="mr-2" /> Remove
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Plus size={16} className="mr-2" /> Add
-                                            </>
-                                        )}
-                                    </button>
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => togglePart(activeCategory, part)}
+                                            className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center
+                                                ${isSelected
+                                                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                                    : 'bg-white/5 text-white hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20'
+                                                }`}
+                                        >
+                                            {isSelected ? (
+                                                <>
+                                                    <Trash2 size={16} className="mr-2" /> Remove
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus size={16} className="mr-2" /> Add
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => addToCompare(part)}
+                                            disabled={compareList.length >= 3 || compareList.find(c => c.id === part.id)}
+                                            className={`px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-center
+                                                ${compareList.find(c => c.id === part.id)
+                                                    ? 'bg-blue-500/20 text-blue-400'
+                                                    : compareList.length >= 3
+                                                        ? 'bg-white/5 text-slate-600 cursor-not-allowed'
+                                                        : 'bg-white/5 text-slate-400 hover:bg-blue-500/10 hover:text-blue-400'
+                                                }`}
+                                            title={compareList.find(c => c.id === part.id) ? 'In comparison' : 'Add to compare'}
+                                        >
+                                            <Scale size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             )
                         })}
@@ -550,8 +1031,21 @@ function Builder({ onBackHome }) {
                     onRemove={removePart}
                     onClear={clearBuild}
                     compatibilityIssues={compatibilityIssues}
+                    onUndo={undo}
+                    onRedo={redo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    onShare={handleShare}
+                    onExport={handleExport}
                 />
             </div>
+
+            {/* Comparison Panel */}
+            <ComparisonPanel
+                compareList={compareList}
+                onRemove={removeFromCompare}
+                onClear={clearCompare}
+            />
         </div >
     )
 }
