@@ -46,26 +46,29 @@ const ToastContainer = ({ toasts }) => (
 
 // ==================== SKELETON LOADER ====================
 const SkeletonCard = () => (
-    <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5 animate-pulse">
+    <div className="relative p-5 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/80 border border-slate-700/50 overflow-hidden">
+        {/* Shimmer overlay */}
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        
         <div className="flex justify-between items-start mb-4">
-            <div className="h-12 w-12 rounded-lg bg-slate-800/80"></div>
+            <div className="h-14 w-14 rounded-xl bg-slate-700/50"></div>
             <div className="space-y-2 text-right">
-                <div className="h-6 w-20 bg-slate-800/80 rounded"></div>
-                <div className="h-4 w-14 bg-slate-800/60 rounded ml-auto"></div>
+                <div className="h-7 w-24 bg-slate-700/50 rounded-lg"></div>
+                <div className="h-5 w-16 bg-slate-700/30 rounded-full ml-auto"></div>
             </div>
         </div>
         <div className="space-y-3">
-            <div className="h-5 w-3/4 bg-slate-800/80 rounded"></div>
-            <div className="h-4 w-1/2 bg-slate-800/60 rounded"></div>
+            <div className="h-5 w-4/5 bg-slate-700/50 rounded-lg"></div>
+            <div className="h-4 w-2/3 bg-slate-700/30 rounded-lg"></div>
             <div className="flex gap-2 mt-4">
-                <div className="h-6 w-16 bg-slate-800/60 rounded"></div>
-                <div className="h-6 w-16 bg-slate-800/60 rounded"></div>
-                <div className="h-6 w-16 bg-slate-800/60 rounded"></div>
+                <div className="h-6 w-16 bg-slate-700/30 rounded-md"></div>
+                <div className="h-6 w-20 bg-slate-700/30 rounded-md"></div>
+                <div className="h-6 w-14 bg-slate-700/30 rounded-md"></div>
             </div>
         </div>
-        <div className="flex gap-2 mt-4">
-            <div className="h-10 flex-1 bg-slate-800/60 rounded-lg"></div>
-            <div className="h-10 w-12 bg-slate-800/60 rounded-lg"></div>
+        <div className="flex gap-3 mt-5">
+            <div className="h-11 flex-1 bg-slate-700/40 rounded-xl"></div>
+            <div className="h-11 w-11 bg-slate-700/40 rounded-xl"></div>
         </div>
     </div>
 )
@@ -999,16 +1002,19 @@ function Builder({ onBackHome }) {
             <main className="flex-1 px-4 sm:px-6 lg:px-8 pb-24 lg:pb-12">
 
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
                     <div>
-                        <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
-                            <Layers className="text-blue-500" />
-                            System <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Builder</span>
+                        <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight flex items-center gap-4">
+                            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30">
+                                <Layers className="text-white" size={28} />
+                            </div>
+                            <span>System</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Builder</span>
                         </h1>
-                        <p className="text-slate-400 text-sm mt-1">
+                        <p className="text-slate-400 text-base mt-2 ml-1">
                             {selectedPreset 
-                                ? `Building: ${selectedPreset.name} (~$${selectedPreset.budget})`
-                                : 'Assemble your ultimate gaming rig.'
+                                ? <span className="flex items-center gap-2"><Sparkles size={16} className="text-yellow-400" /> Building: <span className="text-white font-medium">{selectedPreset.name}</span> <span className="text-slate-500">(~${selectedPreset.budget})</span></span>
+                                : 'Assemble your ultimate gaming rig with intelligent component matching.'
                             }
                         </p>
                     </div>
@@ -1065,10 +1071,10 @@ function Builder({ onBackHome }) {
                     </div>
 
                     {/* Local Filter & Category Nav Row */}
-                    <div className="flex flex-col xl:flex-row gap-4">
+                    <div className="flex flex-col xl:flex-row gap-5">
                         {/* Category Nav - Scrollable */}
                         <div className="flex-1 overflow-x-auto pb-4 -mx-4 px-4 xl:mx-0 xl:px-0 xl:pb-0 scrollbar-hide">
-                            <div className="flex space-x-2 min-w-max">
+                            <div className="flex space-x-3 min-w-max">
                                 {CATEGORIES.map((cat) => {
                                     const Icon = cat.icon
                                     const isSelected = build[cat.key]
@@ -1079,18 +1085,24 @@ function Builder({ onBackHome }) {
                                             key={cat.key}
                                             onClick={() => setActiveCategory(cat.key)}
                                             className={`
-                                                flex items-center space-x-2 px-5 py-3 rounded-xl transition-all duration-200 border select-none
+                                                group flex items-center gap-2.5 px-5 py-3.5 rounded-2xl transition-all duration-300 border select-none relative overflow-hidden
                                                 ${isActive
-                                                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/25 scale-105'
+                                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-transparent text-white shadow-xl shadow-blue-500/30 scale-[1.02]'
                                                     : isSelected
-                                                        ? 'bg-slate-800 border-green-500/50 text-green-400 shadow-[inset_0_0_10px_rgba(74,222,128,0.1)]'
-                                                        : 'bg-slate-900/60 border-white/5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 hover:border-white/10'
+                                                        ? 'bg-slate-800/80 border-emerald-500/40 text-emerald-400 hover:border-emerald-400/60'
+                                                        : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:text-white hover:border-slate-600'
                                                 }
                                             `}
                                         >
-                                            <Icon size={18} />
-                                            <span className="text-sm font-semibold">{cat.label}</span>
-                                            {isSelected && !isActive && <span className="flex h-2 w-2 rounded-full bg-green-500 ml-1.5 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
+                                            {isActive && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />}
+                                            <Icon size={20} className={`relative z-10 ${isActive ? 'drop-shadow-lg' : 'group-hover:scale-110'} transition-transform`} />
+                                            <span className="text-sm font-bold relative z-10">{cat.label}</span>
+                                            {isSelected && !isActive && (
+                                                <span className="relative z-10 flex h-2.5 w-2.5">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                                </span>
+                                            )}
                                         </button>
                                     )
                                 })}
@@ -1098,19 +1110,21 @@ function Builder({ onBackHome }) {
                         </div>
 
                         {/* Local Filter Input */}
-                        <div className="relative xl:w-72 flex-shrink-0">
-                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <div className="relative xl:w-80 flex-shrink-0">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 p-1.5 bg-slate-700/50 rounded-lg">
+                                <Filter size={14} className="text-slate-400" />
+                            </div>
                             <input
                                 type="text"
                                 placeholder={`Filter ${activeCategory} results...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-900/80 backdrop-blur-sm border border-white/10 rounded-xl pl-11 pr-10 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg"
+                                className="w-full bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl pl-14 pr-12 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 focus:bg-slate-800 transition-all shadow-lg"
                             />
                             {searchTerm && (
                                 <button
                                     onClick={() => setSearchTerm('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
                                 >
                                     <X size={14} />
                                 </button>
@@ -1130,13 +1144,21 @@ function Builder({ onBackHome }) {
                 )}
 
                 {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                         {[...Array(6)].map((_, i) => (
                             <SkeletonCard key={i} />
                         ))}
                     </div>
+                ) : filteredComponents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-4">
+                        <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl flex items-center justify-center mb-6 shadow-2xl">
+                            <SearchIcon size={40} className="text-slate-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">No components found</h3>
+                        <p className="text-slate-400 text-center max-w-md">Try adjusting your search or filter to find the perfect component for your build.</p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                         {filteredComponents.map(part => {
                             const isSelected = build[activeCategory]?.id === part.id
                             const specs = part.specs || {}
@@ -1146,47 +1168,53 @@ function Builder({ onBackHome }) {
                             // Helper to render spec badge
                             const SpecBadge = ({ label, value, icon: Icon }) => (
                                 value ? (
-                                    <div className="flex items-center text-[10px] text-slate-300 bg-slate-800/80 px-2 py-1 rounded border border-white/5">
-                                        {Icon && <Icon size={10} className="mr-1.5 text-slate-400" />}
-                                        <span className="opacity-70 mr-1">{label}:</span>
-                                        <span className="font-semibold text-white">{value}</span>
+                                    <div className="flex items-center text-[11px] text-slate-200 bg-slate-700/60 px-2.5 py-1.5 rounded-lg border border-slate-600/30">
+                                        {Icon && <Icon size={11} className="mr-1.5 text-slate-400" />}
+                                        <span className="opacity-60 mr-1">{label}:</span>
+                                        <span className="font-bold">{value}</span>
                                     </div>
                                 ) : null
                             )
 
                             return (
-                                <div key={part.id} className={`relative group p-4 rounded-2xl border transition-all duration-300
+                                <div key={part.id} className={`group relative p-5 rounded-2xl border-2 transition-all duration-300 overflow-hidden
                                     ${isSelected
-                                        ? 'bg-blue-600/5 border-blue-500/50 shadow-[0_0_20px_rgba(37,99,235,0.1)]'
-                                        : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-800/60'}`}
+                                        ? 'bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-purple-600/5 border-blue-500/60 shadow-[0_0_40px_rgba(59,130,246,0.15)]'
+                                        : 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-slate-700/50 hover:border-slate-600 hover:bg-gradient-to-br hover:from-slate-800 hover:to-slate-850'}`}
                                 >
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className={`h-12 w-12 rounded-lg flex items-center justify-center text-slate-300 relative overflow-hidden
-                                            ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-800'}`}>
-                                            {part.image ? (
-                                                <img src={part.image} alt={part.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <Box size={24} strokeWidth={1.5} />
-                                            )}
+                                    {/* Selected indicator glow */}
+                                    {isSelected && (
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 pointer-events-none" />
+                                    )}
+                                    
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className={`h-14 w-14 rounded-xl flex items-center justify-center relative overflow-hidden shadow-lg
+                                                ${isSelected ? 'bg-gradient-to-br from-blue-500 to-indigo-600 ring-2 ring-blue-400/50' : 'bg-slate-700'}`}>
+                                                {part.image ? (
+                                                    <img src={part.image} alt={part.name} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <Box size={26} strokeWidth={1.5} className={isSelected ? 'text-white' : 'text-slate-400'} />
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="block text-2xl font-black text-white tracking-tight">${part.price?.toFixed(0) || 'N/A'}</span>
+                                                {part.tdp && (
+                                                    <span className="inline-flex items-center mt-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold tracking-wide border border-amber-500/30">
+                                                        <Zap size={11} className="mr-1 fill-amber-400" /> {part.tdp}W
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="block text-xl font-bold text-white tracking-tight">${part.price?.toFixed(2) || 'N/A'}</span>
-                                            {part.tdp && (
-                                                <span className="inline-flex items-center justify-end mt-1 px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 text-[10px] font-bold uppercase tracking-wider border border-yellow-500/20">
-                                                    <Zap size={10} className="mr-1 fill-yellow-500" /> {part.tdp}W
+
+                                        <div className="mb-4">
+                                            <h3 className="text-base font-bold text-white mb-3 leading-snug group-hover:text-blue-400 transition-colors line-clamp-2">{part.name}</h3>
+
+                                            {/* Specs Grid */}
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                <span className="text-[11px] text-slate-300 bg-gradient-to-r from-slate-700/80 to-slate-700/50 px-2.5 py-1 rounded-lg border border-slate-600/50 font-bold tracking-wide">
+                                                    {part.brand || 'Generic'}
                                                 </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-4 min-h-[4rem]">
-                                        <h3 className="text-base font-bold text-white mb-2 leading-snug group-hover:text-blue-400 transition-colors line-clamp-2">{part.name}</h3>
-
-                                        {/* Specs Grid */}
-                                        <div className="flex flex-wrap gap-1.5 mb-2">
-                                            <span className="text-[10px] text-white/50 bg-white/5 px-1.5 py-0.5 rounded border border-white/5 uppercase tracking-wide font-bold">
-                                                {part.brand || 'Generic'}
-                                            </span>
 
                                             {/* Dynamic Specs based on Category */}
                                             {activeCategory === 'CPU' && (
@@ -1235,57 +1263,54 @@ function Builder({ onBackHome }) {
 
                                         {/* Review Snippet */}
                                         {reviewCount > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-white/5">
-                                                <div className="flex items-center gap-1.5 mb-1.5">
-                                                    <div className="flex">
+                                            <div className="mt-4 pt-3 border-t border-slate-700/50">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex gap-0.5">
                                                         {[1, 2, 3, 4, 5].map(i => (
-                                                            <svg key={i} className="w-3 h-3 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                                                            <svg key={i} className="w-3.5 h-3.5 text-amber-400 fill-current drop-shadow-sm" viewBox="0 0 20 20">
                                                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                                             </svg>
                                                         ))}
                                                     </div>
-                                                    <span className="text-xs text-slate-400">({reviewCount} reviews)</span>
+                                                    <span className="text-xs text-slate-400 font-medium">({reviewCount} reviews)</span>
                                                 </div>
                                                 {reviews[0]?.text && (
-                                                    <p className="text-xs text-slate-400 italic line-clamp-2">"{reviews[0].text.substring(0, 100)}..."</p>
+                                                    <p className="text-[11px] text-slate-500 italic line-clamp-2">"{reviews[0].text.substring(0, 100)}..."</p>
                                                 )}
                                             </div>
                                         )}
                                     </div>
+                                    </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex gap-2">
+                                    <div className="relative z-10 flex gap-3 mt-4">
                                         <button
                                             onClick={() => togglePart(activeCategory, part)}
-                                            className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center
+                                            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2
                                                 ${isSelected
-                                                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                                    : 'bg-white/5 text-white hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20'
+                                                    ? 'bg-gradient-to-r from-red-600/20 to-red-500/10 text-red-400 border border-red-500/30 hover:border-red-500/50 hover:from-red-600/30'
+                                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]'
                                                 }`}
                                         >
                                             {isSelected ? (
-                                                <>
-                                                    <Trash2 size={16} className="mr-2" /> Remove
-                                                </>
+                                                <><Trash2 size={16} /> Remove</>
                                             ) : (
-                                                <>
-                                                    <Plus size={16} className="mr-2" /> Add
-                                                </>
+                                                <><Plus size={16} /> Add to Build</>
                                             )}
                                         </button>
                                         <button
                                             onClick={() => addToCompare(part)}
                                             disabled={compareList.length >= 3 || compareList.find(c => c.id === part.id)}
-                                            className={`px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-center
+                                            className={`p-3 rounded-xl text-sm transition-all duration-300 flex items-center justify-center border
                                                 ${compareList.find(c => c.id === part.id)
-                                                    ? 'bg-blue-500/20 text-blue-400'
+                                                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                                                     : compareList.length >= 3
-                                                        ? 'bg-white/5 text-slate-600 cursor-not-allowed'
-                                                        : 'bg-white/5 text-slate-400 hover:bg-blue-500/10 hover:text-blue-400'
+                                                        ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-slate-700/30'
+                                                        : 'bg-slate-800/50 text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 border-slate-700/50'
                                                 }`}
                                             title={compareList.find(c => c.id === part.id) ? 'In comparison' : 'Add to compare'}
                                         >
-                                            <Scale size={16} />
+                                            <Scale size={18} />
                                         </button>
                                     </div>
                                 </div>
@@ -1293,33 +1318,6 @@ function Builder({ onBackHome }) {
                         })}
                     </div>
                 )
-                }
-
-                {
-                    filteredComponents.length === 0 && !loading && (
-                        <div className="mt-8 text-center py-16 border border-dashed border-slate-800 rounded-2xl bg-slate-900/20">
-                            <div className="inline-flex bg-slate-800/50 p-4 rounded-full mb-4">
-                                {searchTerm ? <SearchIcon size={32} className="text-slate-600" /> : <Filter size={32} className="text-slate-600" />}
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-2">
-                                {searchTerm ? 'No Results Found' : 'No Components Found'}
-                            </h3>
-                            <p className="text-slate-500 text-sm max-w-sm mx-auto">
-                                {searchTerm
-                                    ? `No matches for "${searchTerm}" in ${activeCategory}.`
-                                    : `We couldn't find any ${activeCategory} components. Check your API connection.`
-                                }
-                            </p>
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setSearchTerm('')}
-                                    className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg transition-colors"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                        </div>
-                    )
                 }
             </main >
 

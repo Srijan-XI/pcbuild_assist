@@ -21,16 +21,16 @@ function Hit({ hit, onSelect, attributes }) {
     return (
         <div
             onClick={() => onSelect && onSelect(hit)}
-            className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-md border border-transparent hover:border-blue-500/30 group"
+            className="p-3.5 hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-indigo-500/5 cursor-pointer transition-all duration-200 rounded-xl border border-transparent hover:border-blue-500/30 group"
         >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
                 {imageUrl && (
-                    <div className="h-10 w-10 flex-shrink-0 bg-slate-200 dark:bg-slate-700 rounded-md overflow-hidden flex items-center justify-center">
+                    <div className="h-12 w-12 flex-shrink-0 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl overflow-hidden flex items-center justify-center shadow-lg group-hover:shadow-blue-500/20 transition-shadow">
                         <img src={imageUrl} alt={primaryText} className="h-full w-full object-cover" onError={(e) => e.target.style.display = 'none'} />
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
-                    <h3 className="text-foreground font-medium text-sm truncate">
+                    <h3 className="text-white font-semibold text-sm truncate group-hover:text-blue-400 transition-colors">
                         {/* If we strictly follow attributes for highlighting, we'd need dynamic Highlight props. 
                 For now, we'll try to highlight the primary text attribute if it matches known keys. */}
                         {attributes?.primaryText ? (
@@ -40,14 +40,14 @@ function Hit({ hit, onSelect, attributes }) {
                         )}
                     </h3>
                     {secondaryText && (
-                        <p className="text-muted-foreground text-xs truncate">
+                        <p className="text-slate-400 text-xs truncate mt-0.5">
                             {secondaryText}
                         </p>
                     )}
                 </div>
                 <div className="text-right flex-shrink-0">
                     {Number.isFinite(price) && (
-                        <div className="text-foreground font-semibold text-sm">${price.toFixed(2)}</div>
+                        <div className="text-emerald-400 font-bold text-sm">${price.toFixed(0)}</div>
                     )}
                 </div>
             </div>
@@ -115,45 +115,51 @@ export default function Search({
             <button
                 onClick={() => setIsOpen(true)}
                 className={cn(
-                    "w-full flex items-center rounded-2xl px-5 py-4 text-left transition-all outline-none ring-offset-0",
-                    "bg-slate-900/80 backdrop-blur-xl border border-white/10 text-slate-400 shadow-xl",
-                    "hover:bg-slate-800 hover:border-blue-500/30 hover:text-slate-200 hover:shadow-blue-500/10",
-                    "focus:ring-2 focus:ring-blue-500/50",
+                    "w-full flex items-center rounded-2xl px-6 py-4 text-left transition-all duration-300 outline-none group",
+                    "bg-gradient-to-r from-slate-800/90 to-slate-900/90 backdrop-blur-xl border border-slate-700/50 text-slate-400 shadow-xl shadow-black/20",
+                    "hover:from-slate-800 hover:to-slate-850 hover:border-blue-500/40 hover:text-slate-200 hover:shadow-blue-500/10 hover:shadow-2xl",
+                    "focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                     className
                 )}
             >
-                <SearchIcon className="mr-3 h-5 w-5 text-blue-500" />
+                <div className="p-2 bg-blue-500/20 rounded-lg mr-4 group-hover:bg-blue-500/30 transition-colors">
+                    <SearchIcon className="h-5 w-5 text-blue-400" />
+                </div>
                 {isAlgoliaConfigured ? (
-                    <span className="text-sm font-medium text-slate-300">Search for components...</span>
+                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Search for components...</span>
                 ) : (
                     <span className="text-xs font-mono text-red-400 bg-red-500/10 px-2 py-0.5 rounded ml-auto">Algolia Not Configured</span>
                 )}
-                {isAlgoliaConfigured && <span className="ml-auto text-xs text-slate-500 font-mono bg-white/5 px-2 py-1 rounded border border-white/5">⌘K</span>}
+                {isAlgoliaConfigured && (
+                    <span className="ml-auto text-xs text-slate-500 font-mono bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600/50 group-hover:border-blue-500/30 group-hover:text-slate-300 transition-all">⌘K</span>
+                )}
             </button>
 
             {isOpen && (
-                <div className={cn("fixed inset-0 z-50 flex items-start justify-center sm:px-6 sm:pb-6 sm:pt-24", darkMode && "dark")}>
+                <div className={cn("fixed inset-0 z-50 flex items-start justify-center sm:px-6 sm:pb-6 sm:pt-20", darkMode && "dark")}>
                     {/* Backdrop */}
                     <div
-                        className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                        className="fixed inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity"
                         onClick={() => setIsOpen(false)}
                     />
 
                     {/* Search Modal */}
-                    <div className="relative z-50 w-full max-w-lg transform overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-2xl transition-all border-white/10">
+                    <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-3xl border bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl shadow-black/50 transition-all border-slate-700/50">
                         {isAlgoliaConfigured ? (
                             <InstantSearch searchClient={searchClient} indexName={indexName}>
                                 <Configure hitsPerPage={8} filters={filters} />
 
                                 {/* Header */}
-                                <div className="flex items-center border-b px-3" ref={searchBoxRef}>
-                                    <SearchIcon className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                <div className="flex items-center border-b border-slate-700/50 px-5 bg-slate-900/50" ref={searchBoxRef}>
+                                    <div className="p-2 bg-blue-500/20 rounded-lg mr-3">
+                                        <SearchIcon className="h-5 w-5 text-blue-400" />
+                                    </div>
                                     <SearchBox
-                                        placeholder="Type to search..."
+                                        placeholder="Type to search components..."
                                         classNames={{
-                                            root: 'flex-1 h-14',
+                                            root: 'flex-1 h-16',
                                             form: 'relative h-full',
-                                            input: 'w-full h-full bg-transparent border-none text-sm outline-none placeholder:text-muted-foreground focus:ring-0 px-2',
+                                            input: 'w-full h-full bg-transparent border-none text-base text-white outline-none placeholder:text-slate-500 focus:ring-0 px-2 font-medium',
                                             submit: 'hidden',
                                             reset: 'hidden',
                                             loadingIndicator: 'hidden',
@@ -161,14 +167,14 @@ export default function Search({
                                     />
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="ml-2 rounded-md bg-secondary px-1.5 py-0.5 text-xs font-semibold uppercase text-secondary-foreground hover:bg-secondary/80"
+                                        className="ml-2 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold uppercase text-slate-400 hover:bg-slate-700 hover:text-white transition-all border border-slate-700"
                                     >
                                         Esc
                                     </button>
                                 </div>
 
                                 {/* Results */}
-                                <div className="max-h-[60vh] overflow-y-auto p-2">
+                                <div className="max-h-[60vh] overflow-y-auto p-3">
                                     <Hits
                                         hitComponent={({ hit }) => <Hit hit={hit} onSelect={handleSelect} attributes={attributes} />}
                                         classNames={{
@@ -177,8 +183,9 @@ export default function Search({
                                             item: 'list-none',
                                         }}
                                     />
-                                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                                        <img src="https://www.algolia.com/doc/assets/algolia-logo-blue.svg" alt="Algolia" className="h-3 inline-block mr-1 opacity-50" />
+                                    <div className="px-2 py-6 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                                        <span>Powered by</span>
+                                        <img src="https://www.algolia.com/doc/assets/algolia-logo-blue.svg" alt="Algolia" className="h-4 opacity-60" />
                                     </div>
                                 </div>
 
