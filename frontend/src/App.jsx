@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import {
     Cpu, Menu, Search as SearchIcon, ChevronDown,
     Monitor, Gamepad2, CircuitBoard, MemoryStick,
-    Plug, HardDrive, Rocket, CheckCircle, Lightbulb
+    Plug, HardDrive, Rocket, CheckCircle, Lightbulb,
+    Zap, Shield, ArrowRight, Star, X, Github, Twitter, Plus
 } from 'lucide-react'
 import Builder from './Builder'
 import Search from "@/components/search"
@@ -10,6 +11,7 @@ import './css/App.css'
 import './css/components-education.css'
 import './css/builder-styles.css'
 import './css/tailwind-fallback.css'
+import './css/ui-enhancements.css'
 
 // PC Component educational data with images
 const componentInfo = [
@@ -101,6 +103,13 @@ const componentInfo = [
 
 const Navbar = ({ onNavigate }) => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [scrolled, setScrolled] = useState(false)
+
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20)
+        window.addEventListener('scroll', handleScroll)
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
 
     const menuItems = [
         { label: 'Builder', onClick: () => { onNavigate('builder'); setMobileMenuOpen(false) } },
@@ -110,11 +119,11 @@ const Navbar = ({ onNavigate }) => {
     ]
 
     return (
-        <nav className="fixed w-full z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+        <nav className={`fixed w-full z-40 transition-all duration-300 ${scrolled ? 'bg-slate-950/95 backdrop-blur-xl shadow-lg shadow-black/20' : 'bg-slate-950/80 backdrop-blur-md'} border-b border-white/5`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
-                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigate('home')}>
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+                    <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => onNavigate('home')}>
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-all group-hover:scale-105">
                             <Cpu className="h-6 w-6 text-white" strokeWidth={2} />
                         </div>
                         <span className="text-2xl font-bold text-white tracking-tight">
@@ -127,41 +136,46 @@ const Navbar = ({ onNavigate }) => {
                             <button
                                 key={item.label}
                                 onClick={item.onClick}
-                                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 relative group"
                             >
                                 {item.label}
+                                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-500 group-hover:w-1/2 transition-all duration-200" />
                             </button>
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <button className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all text-sm group">
-                            <SearchIcon size={16} className="group-hover:text-white transition-colors" />
-                            <span className="mr-4">Search...</span>
-                            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex">
+                    <div className="flex items-center gap-3">
+                        <button className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-slate-800/80 transition-all text-sm group shadow-lg">
+                            <SearchIcon size={16} className="group-hover:text-blue-400 transition-colors" />
+                            <span className="mr-6">Search...</span>
+                            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-slate-400 sm:flex">
                                 <span className="text-xs">⌘</span>K
                             </kbd>
                         </button>
-                        <button className="md:hidden p-2 text-slate-400 hover:text-white transition-colors">
+                        <button className="md:hidden p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
                             <SearchIcon size={20} />
                         </button>
-                        <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                            <Menu className="text-slate-300" />
+                        <button 
+                            className="md:hidden p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all" 
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        >
+                            {mobileMenuOpen ? <X /> : <Menu />}
                         </button>
                     </div>
                 </div>
 
                 {/* Mobile Menu */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden absolute top-20 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-b border-white/10 shadow-xl">
-                        <div className="px-4 py-4 space-y-2">
+                    <div className="md:hidden absolute top-20 left-0 right-0 bg-slate-900/98 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+                        <div className="px-4 py-4 space-y-1">
                             {menuItems.map((item) => (
                                 <button
                                     key={item.label}
                                     onClick={item.onClick}
-                                    className="w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                    className="w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all flex items-center justify-between group"
                                 >
                                     {item.label}
+                                    <ArrowRight size={16} className="text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                                 </button>
                             ))}
                         </div>
@@ -230,34 +244,43 @@ function App() {
 
             <main className="app-main">
                 <section className="hero">
-                    <h2>Build Your Perfect PC</h2>
-                    <p>Get intelligent component suggestions with real-time compatibility checking</p>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-6">
+                        <Zap size={14} className="animate-pulse" />
+                        <span>Powered by Algolia Instant Search</span>
+                    </div>
+                    
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
+                        Build Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Perfect PC</span>
+                    </h2>
+                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
+                        Get intelligent component suggestions with real-time compatibility checking
+                    </p>
 
-                    <div className="features">
-                        <div className="feature">
-                            <span className="icon-wrapper bg-blue-500/10 p-4 rounded-full mb-4 inline-block">
-                                <SearchIcon className="text-blue-500" size={32} />
+                    <div className="features mt-16">
+                        <div className="feature group">
+                            <span className="icon-wrapper bg-blue-500/10 p-5 rounded-2xl mb-6 inline-block group-hover:bg-blue-500/20 group-hover:scale-110 transition-all duration-300">
+                                <SearchIcon className="text-blue-500" size={36} />
                             </span>
-                            <h3>Smart Search</h3>
-                            <p>Find components instantly with Algolia-powered search</p>
+                            <h3 className="text-xl font-bold mb-3">Smart Search</h3>
+                            <p className="text-slate-400">Find components instantly with Algolia-powered search featuring typo-tolerance and faceted filtering</p>
                         </div>
-                        <div className="feature">
-                            <span className="icon-wrapper bg-green-500/10 p-4 rounded-full mb-4 inline-block">
-                                <CheckCircle className="text-green-500" size={32} />
+                        <div className="feature group">
+                            <span className="icon-wrapper bg-green-500/10 p-5 rounded-2xl mb-6 inline-block group-hover:bg-green-500/20 group-hover:scale-110 transition-all duration-300">
+                                <Shield className="text-green-500" size={36} />
                             </span>
-                            <h3>Compatibility Check</h3>
-                            <p>Automatic validation of socket, memory, and power compatibility</p>
+                            <h3 className="text-xl font-bold mb-3">Compatibility Check</h3>
+                            <p className="text-slate-400">Automatic validation of socket, memory type, and power requirements in real-time</p>
                         </div>
-                        <div className="feature">
-                            <span className="icon-wrapper bg-purple-500/10 p-4 rounded-full mb-4 inline-block">
-                                <Lightbulb className="text-purple-500" size={32} />
+                        <div className="feature group">
+                            <span className="icon-wrapper bg-purple-500/10 p-5 rounded-2xl mb-6 inline-block group-hover:bg-purple-500/20 group-hover:scale-110 transition-all duration-300">
+                                <Star className="text-purple-500" size={36} />
                             </span>
-                            <h3>Proactive Suggestions</h3>
-                            <p>Get compatible component recommendations as you build</p>
+                            <h3 className="text-xl font-bold mb-3">Smart Suggestions</h3>
+                            <p className="text-slate-400">Get compatible component recommendations based on your selections and budget</p>
                         </div>
                     </div>
 
-                    <div className="max-w-xl mx-auto mt-12 mb-8">
+                    <div className="max-w-xl mx-auto mt-16 mb-10">
                         <Search
                             applicationId={import.meta.env.VITE_ALGOLIA_APP_ID}
                             apiKey={import.meta.env.VITE_ALGOLIA_SEARCH_KEY}
@@ -275,10 +298,28 @@ function App() {
 
                     <button
                         onClick={() => setCurrentPage('builder')}
-                        className="search-btn flex items-center justify-center gap-2"
+                        className="search-btn group flex items-center justify-center gap-3"
                     >
-                        <Rocket size={20} /> Start Building Now
+                        <Rocket size={22} className="group-hover:rotate-12 transition-transform" /> 
+                        <span>Start Building Now</span>
+                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
+                    
+                    {/* Trust indicators */}
+                    <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500">
+                        <span className="flex items-center gap-2">
+                            <CheckCircle size={16} className="text-green-500" />
+                            1000+ Components
+                        </span>
+                        <span className="flex items-center gap-2">
+                            <Zap size={16} className="text-yellow-500" />
+                            Instant Results
+                        </span>
+                        <span className="flex items-center gap-2">
+                            <Shield size={16} className="text-blue-500" />
+                            Compatibility Verified
+                        </span>
+                    </div>
                 </section>
 
                 <section className="components-education" id="learn">
@@ -346,29 +387,90 @@ function App() {
                 </section>
 
                 <section className="getting-started" id="guides">
-                    <h2>Getting Started</h2>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium mb-6">
+                        <Lightbulb size={14} />
+                        <span>Quick Start Guide</span>
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Getting Started</h2>
+                    <p className="text-slate-400 mb-12 max-w-xl mx-auto">Build your dream PC in 4 simple steps</p>
                     <div className="steps">
                         {[
-                            { title: 'Select Your CPU', desc: 'Choose from Intel or AMD processors' },
-                            { title: 'Get Motherboard Suggestions', desc: "We'll show you compatible motherboards for your CPU socket" },
-                            { title: 'Add Components', desc: 'RAM, GPU, PSU, and storage - all validated for compatibility' },
-                            { title: 'Review & Build', desc: 'See your complete build with total cost and power requirements' }
-                        ].map((step, idx) => (
-                            <div key={idx} className="step">
-                                <span className="step-number">{idx + 1}</span>
-                                <div className="step-content">
-                                    <h3>{step.title}</h3>
-                                    <p>{step.desc}</p>
+                            { title: 'Select Your CPU', desc: 'Choose from Intel or AMD processors', icon: Cpu, color: 'blue' },
+                            { title: 'Get Motherboard Suggestions', desc: "We'll show you compatible motherboards for your CPU socket", icon: HardDrive, color: 'green' },
+                            { title: 'Add Components', desc: 'RAM, GPU, PSU, and storage - all validated for compatibility', icon: Plus, color: 'purple' },
+                            { title: 'Review & Build', desc: 'See your complete build with total cost and power requirements', icon: CheckCircle, color: 'orange' }
+                        ].map((step, idx) => {
+                            const IconComponent = step.icon
+                            return (
+                                <div key={idx} className="step group">
+                                    <div className={`step-number bg-${step.color}-500/20 text-${step.color}-400 group-hover:bg-${step.color}-500 group-hover:text-white`}>
+                                        <IconComponent size={20} />
+                                    </div>
+                                    <div className="step-content">
+                                        <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
+                                        <p className="text-slate-400 text-sm">{step.desc}</p>
+                                    </div>
+                                    {idx < 3 && <div className="step-connector" />}
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
+                    
+                    <button
+                        onClick={() => setCurrentPage('builder')}
+                        className="mt-12 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-xl font-semibold text-white flex items-center gap-3 mx-auto shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all group"
+                    >
+                        <Rocket size={20} className="group-hover:rotate-12 transition-transform" />
+                        Start Building
+                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </section>
             </main>
 
             <footer className="app-footer">
-                <p>Built for Algolia Dev Challenge 2025</p>
-                <p>Powered by Algolia • FastAPI • React</p>
+                <div className="footer-content">
+                    <div className="footer-brand">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Monitor className="text-blue-500" size={24} />
+                            <span className="text-xl font-bold">
+                                PCBuild<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Assist</span>
+                            </span>
+                        </div>
+                        <p className="text-slate-500 text-sm">Smart PC Component Builder powered by Algolia's instant search technology.</p>
+                    </div>
+                    
+                    <div className="footer-links">
+                        <div className="footer-column">
+                            <h4 className="text-sm font-semibold text-white mb-4">Quick Links</h4>
+                            <ul className="space-y-2 text-sm text-slate-400">
+                                <li><button onClick={() => setCurrentPage('builder')} className="hover:text-blue-400 transition-colors">Builder</button></li>
+                                <li><a href="#learn" className="hover:text-blue-400 transition-colors">Learn Components</a></li>
+                                <li><a href="#guides" className="hover:text-blue-400 transition-colors">Getting Started</a></li>
+                            </ul>
+                        </div>
+                        <div className="footer-column">
+                            <h4 className="text-sm font-semibold text-white mb-4">Technologies</h4>
+                            <ul className="space-y-2 text-sm text-slate-400">
+                                <li>Algolia InstantSearch</li>
+                                <li>React + Vite</li>
+                                <li>FastAPI Backend</li>
+                                <li>TailwindCSS</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="footer-bottom">
+                    <p className="text-slate-500 text-sm">Built for Algolia Dev Challenge 2025</p>
+                    <div className="flex items-center gap-4">
+                        <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white transition-colors">
+                            <Github size={20} />
+                        </a>
+                        <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white transition-colors">
+                            <Twitter size={20} />
+                        </a>
+                    </div>
+                </div>
             </footer>
         </div>
     )

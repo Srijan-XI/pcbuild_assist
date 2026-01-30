@@ -1,11 +1,99 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
     Cpu, Monitor, HardDrive, Layers, Zap, Box, Trash2, CheckCircle, AlertCircle,
     ShoppingCart, X, Plus, Info, ChevronRight, Search as SearchIcon, Filter,
-    Undo2, Redo2, Share2, Copy, Download, Upload, Sparkles, RotateCcw, Star, TrendingUp, Scale
+    Undo2, Redo2, Share2, Copy, Download, Upload, Sparkles, RotateCcw, Star, TrendingUp, Scale,
+    Heart, Eye, ArrowRight, Loader2, Check, ExternalLink, Award, Clock, Package
 } from 'lucide-react'
 import Search from "@/components/search"
 import './css/algolia-search.css'
+import './css/ui-enhancements.css'
+
+// ==================== TOAST NOTIFICATION SYSTEM ====================
+const useToast = () => {
+    const [toasts, setToasts] = useState([])
+    
+    const showToast = useCallback((message, type = 'info', duration = 3000) => {
+        const id = Date.now()
+        setToasts(prev => [...prev, { id, message, type }])
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id))
+        }, duration)
+    }, [])
+    
+    return { toasts, showToast }
+}
+
+const ToastContainer = ({ toasts }) => (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2">
+        {toasts.map(toast => (
+            <div
+                key={toast.id}
+                className={`px-4 py-3 rounded-xl backdrop-blur-xl border shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-4 fade-in duration-300
+                    ${toast.type === 'success' ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-200' : ''}
+                    ${toast.type === 'error' ? 'bg-red-950/90 border-red-500/30 text-red-200' : ''}
+                    ${toast.type === 'info' ? 'bg-blue-950/90 border-blue-500/30 text-blue-200' : ''}
+                `}
+            >
+                {toast.type === 'success' && <Check size={18} className="text-emerald-400" />}
+                {toast.type === 'error' && <AlertCircle size={18} className="text-red-400" />}
+                {toast.type === 'info' && <Info size={18} className="text-blue-400" />}
+                <span className="text-sm font-medium">{toast.message}</span>
+            </div>
+        ))}
+    </div>
+)
+
+// ==================== SKELETON LOADER ====================
+const SkeletonCard = () => (
+    <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5 animate-pulse">
+        <div className="flex justify-between items-start mb-4">
+            <div className="h-12 w-12 rounded-lg bg-slate-800/80"></div>
+            <div className="space-y-2 text-right">
+                <div className="h-6 w-20 bg-slate-800/80 rounded"></div>
+                <div className="h-4 w-14 bg-slate-800/60 rounded ml-auto"></div>
+            </div>
+        </div>
+        <div className="space-y-3">
+            <div className="h-5 w-3/4 bg-slate-800/80 rounded"></div>
+            <div className="h-4 w-1/2 bg-slate-800/60 rounded"></div>
+            <div className="flex gap-2 mt-4">
+                <div className="h-6 w-16 bg-slate-800/60 rounded"></div>
+                <div className="h-6 w-16 bg-slate-800/60 rounded"></div>
+                <div className="h-6 w-16 bg-slate-800/60 rounded"></div>
+            </div>
+        </div>
+        <div className="flex gap-2 mt-4">
+            <div className="h-10 flex-1 bg-slate-800/60 rounded-lg"></div>
+            <div className="h-10 w-12 bg-slate-800/60 rounded-lg"></div>
+        </div>
+    </div>
+)
+
+// ==================== ANIMATED COUNTER ====================
+const AnimatedCounter = ({ value, prefix = '', suffix = '', className = '' }) => {
+    const [displayValue, setDisplayValue] = useState(value)
+    const [isAnimating, setIsAnimating] = useState(false)
+    const prevValue = useRef(value)
+    
+    useEffect(() => {
+        if (value !== prevValue.current) {
+            setIsAnimating(true)
+            const timeout = setTimeout(() => {
+                setDisplayValue(value)
+                setIsAnimating(false)
+            }, 150)
+            prevValue.current = value
+            return () => clearTimeout(timeout)
+        }
+    }, [value])
+    
+    return (
+        <span className={`${className} ${isAnimating ? 'scale-110 text-blue-400' : ''} transition-all duration-150`}>
+            {prefix}{typeof displayValue === 'number' ? displayValue.toFixed(displayValue % 1 === 0 ? 0 : 2) : displayValue}{suffix}
+        </span>
+    )
+}
 
 // ==================== BUILD PRESETS ====================
 const BUILD_PRESETS = [
@@ -216,46 +304,109 @@ const exportBuildToJSON = (build, totalCost, totalPower) => {
 
 // ==================== COMPARISON PANEL ====================
 const ComparisonPanel = ({ compareList, onRemove, onClear }) => {
+    const [isExpanded, setIsExpanded] = useState(true)
+    
     if (compareList.length === 0) return null
 
     const allSpecs = [...new Set(compareList.flatMap(item => Object.keys(item.specs || {})))]
+    
+    // Find best value for highlighting
+    const getBestValue = (spec) => {
+        const values = compareList.map(item => item.specs?.[spec]).filter(Boolean)
+        return values.length > 0 ? Math.max(...values.map(v => parseFloat(v) || 0)) : null
+    }
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-white/10 shadow-2xl transform transition-all">
-            <div className="max-w-7xl mx-auto p-4">
+        <div className={`fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-slate-950 via-slate-900/98 to-slate-900/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-20px_60px_rgba(0,0,0,0.5)] transition-all duration-500 ${isExpanded ? '' : 'translate-y-[calc(100%-60px)]'}`}>
+            {/* Collapse Toggle */}
+            <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-full p-2 shadow-lg transition-all hover:scale-110"
+            >
+                <ChevronRight size={16} className={`text-white transform transition-transform ${isExpanded ? 'rotate-90' : '-rotate-90'}`} />
+            </button>
+            
+            <div className="max-w-7xl mx-auto p-4 pt-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Scale size={20} className="text-blue-400" />
-                        Compare ({compareList.length}/3)
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/20 rounded-lg">
+                            <Scale size={20} className="text-blue-400" />
+                        </div>
+                        <span>Compare Components</span>
+                        <span className="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-1 rounded-full">
+                            {compareList.length}/3
+                        </span>
                     </h3>
-                    <button onClick={onClear} className="text-slate-400 hover:text-red-400 text-sm flex items-center gap-1">
-                        <X size={14} /> Clear All
+                    <button 
+                        onClick={onClear} 
+                        className="text-slate-400 hover:text-red-400 text-sm flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-all"
+                    >
+                        <Trash2 size={14} /> Clear
                     </button>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {compareList.map((item, idx) => (
-                        <div key={item.id || idx} className="bg-slate-800/50 rounded-xl p-4 border border-white/5 relative">
+                        <div 
+                            key={item.id || idx} 
+                            className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl p-4 border border-white/5 hover:border-blue-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5"
+                            style={{ animationDelay: `${idx * 100}ms` }}
+                        >
+                            {/* Rank Badge */}
+                            {idx === 0 && compareList.length > 1 && (
+                                <div className="absolute -top-2 -left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+                                    <Award size={10} /> Best Value
+                                </div>
+                            )}
+                            
                             <button 
                                 onClick={() => onRemove(item.id)}
-                                className="absolute top-2 right-2 p-1 text-slate-500 hover:text-red-400 rounded"
+                                className="absolute top-3 right-3 p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                             >
                                 <X size={14} />
                             </button>
-                            <h4 className="font-semibold text-white text-sm truncate pr-6">{item.name}</h4>
-                            <p className="text-green-400 font-bold">${item.price?.toFixed(2)}</p>
-                            <div className="mt-2 space-y-1">
-                                {allSpecs.slice(0, 5).map(spec => (
-                                    <div key={spec} className="flex justify-between text-xs">
-                                        <span className="text-slate-500">{spec}:</span>
-                                        <span className="text-slate-300">{item.specs?.[spec] || '-'}</span>
-                                    </div>
-                                ))}
+                            
+                            <div className="flex items-start gap-3 mb-3">
+                                <div className="h-10 w-10 rounded-lg bg-slate-700/50 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                    {item.image ? (
+                                        <img src={item.image} alt="" className="h-full w-full object-cover rounded-lg" />
+                                    ) : (
+                                        <Package size={18} />
+                                    )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-semibold text-white text-sm truncate pr-6">{item.name}</h4>
+                                    <p className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">
+                                        ${item.price?.toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                {allSpecs.slice(0, 5).map(spec => {
+                                    const value = item.specs?.[spec]
+                                    const bestVal = getBestValue(spec)
+                                    const isBest = bestVal && parseFloat(value) === bestVal
+                                    
+                                    return (
+                                        <div key={spec} className="flex justify-between text-xs items-center">
+                                            <span className="text-slate-500 capitalize">{spec.replace(/_/g, ' ')}:</span>
+                                            <span className={`font-medium ${isBest ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                                {value || '-'}
+                                                {isBest && <Award size={10} className="inline ml-1" />}
+                                            </span>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </div>
                     ))}
+                    
                     {compareList.length < 3 && (
-                        <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 flex items-center justify-center text-slate-500 text-sm">
-                            Add more to compare
+                        <div className="border-2 border-dashed border-slate-700/50 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-500 text-sm hover:border-slate-600 hover:bg-slate-800/20 transition-all cursor-pointer group">
+                            <Plus size={24} className="mb-2 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                            <span>Add component to compare</span>
+                            <span className="text-xs text-slate-600 mt-1">Click the scale icon on any card</span>
                         </div>
                     )}
                 </div>
@@ -267,49 +418,85 @@ const ComparisonPanel = ({ compareList, onRemove, onClear }) => {
 // ==================== PRESET SELECTOR ====================
 const PresetSelector = ({ onSelectPreset, currentBudget }) => {
     const [isOpen, setIsOpen] = useState(false)
+    const [hoveredPreset, setHoveredPreset] = useState(null)
 
     return (
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-purple-500/20 transition-all"
+                className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 active:scale-95"
             >
-                <Sparkles size={16} />
-                Build Presets
-                <ChevronRight size={16} className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+                <span>Build Presets</span>
+                <ChevronRight size={16} className={`transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
             </button>
 
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
-                    <div className="absolute top-full mt-2 left-0 z-40 w-80 bg-slate-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-                        <div className="p-3 border-b border-white/5">
-                            <p className="text-xs text-slate-400">Quick-start with a preset build</p>
+                    <div className="absolute top-full mt-3 left-0 z-40 w-96 bg-slate-900/98 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
+                        {/* Header */}
+                        <div className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b border-white/5">
+                            <h4 className="font-bold text-white flex items-center gap-2">
+                                <Sparkles size={16} className="text-purple-400" />
+                                Quick Start Presets
+                            </h4>
+                            <p className="text-xs text-slate-400 mt-1">Pre-configured builds for different needs</p>
                         </div>
-                        <div className="p-2 space-y-1">
-                            {BUILD_PRESETS.map(preset => {
+                        
+                        {/* Presets List */}
+                        <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
+                            {BUILD_PRESETS.map((preset, idx) => {
                                 const Icon = preset.icon
+                                const isHovered = hoveredPreset === preset.id
+                                
                                 return (
                                     <button
                                         key={preset.id}
                                         onClick={() => { onSelectPreset(preset); setIsOpen(false) }}
-                                        className="w-full p-3 rounded-xl hover:bg-white/5 transition-colors text-left group"
+                                        onMouseEnter={() => setHoveredPreset(preset.id)}
+                                        onMouseLeave={() => setHoveredPreset(null)}
+                                        className="w-full p-4 rounded-xl hover:bg-white/5 transition-all duration-200 text-left group relative overflow-hidden"
+                                        style={{ animationDelay: `${idx * 50}ms` }}
                                     >
-                                        <div className="flex items-start gap-3">
-                                            <div className={`p-2 rounded-lg bg-gradient-to-br ${preset.color}`}>
-                                                <Icon size={18} className="text-white" />
+                                        {/* Glow effect on hover */}
+                                        {isHovered && (
+                                            <div className={`absolute inset-0 bg-gradient-to-r ${preset.color} opacity-5 transition-opacity`} />
+                                        )}
+                                        
+                                        <div className="flex items-start gap-4 relative z-10">
+                                            <div className={`p-3 rounded-xl bg-gradient-to-br ${preset.color} shadow-lg transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3`}>
+                                                <Icon size={20} className="text-white" />
                                             </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-semibold text-white text-sm group-hover:text-blue-400 transition-colors">
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors flex items-center gap-2">
                                                     {preset.name}
+                                                    <ArrowRight size={14} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-400" />
                                                 </h4>
-                                                <p className="text-xs text-slate-400">{preset.description}</p>
-                                                <p className="text-xs text-green-400 mt-1">~${preset.budget}</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">{preset.description}</p>
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">
+                                                        ~${preset.budget.toLocaleString()}
+                                                    </span>
+                                                    {preset.targets.CPU?.tier && (
+                                                        <span className="text-[10px] text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded-full capitalize">
+                                                            {preset.targets.CPU.tier} tier
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </button>
                                 )
                             })}
+                        </div>
+                        
+                        {/* Footer tip */}
+                        <div className="p-3 bg-slate-800/50 border-t border-white/5">
+                            <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <Info size={10} />
+                                Presets auto-configure budget limits for each component
+                            </p>
                         </div>
                     </div>
                 </>
@@ -330,9 +517,11 @@ const CATEGORIES = [
 const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compatibilityIssues, onUndo, onRedo, canUndo, canRedo, onShare, onExport }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [shareTooltip, setShareTooltip] = useState(false)
+    const [showClearConfirm, setShowClearConfirm] = useState(false)
     const filledSlots = Object.keys(build).length
     const totalSlots = CATEGORIES.length
     const progress = (filledSlots / totalSlots) * 100
+    const isComplete = filledSlots === totalSlots
 
     const handleShare = async () => {
         const shareCode = onShare()
@@ -343,8 +532,17 @@ const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compati
             setShareTooltip(true)
             setTimeout(() => setShareTooltip(false), 2000)
         } catch (e) {
-            // Fallback for browsers that don't support clipboard
             prompt('Copy this link:', shareUrl)
+        }
+    }
+    
+    const handleClear = () => {
+        if (showClearConfirm) {
+            onClear()
+            setShowClearConfirm(false)
+        } else {
+            setShowClearConfirm(true)
+            setTimeout(() => setShowClearConfirm(false), 3000)
         }
     }
 
@@ -353,155 +551,224 @@ const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compati
             {/* Mobile Toggle Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="lg:hidden fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-full shadow-[0_4px_20px_rgba(79,70,229,0.5)] flex items-center space-x-2 border border-white/20"
+                className="lg:hidden fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-[0_8px_30px_rgba(79,70,229,0.5)] flex items-center space-x-2 border border-white/20 hover:scale-105 active:scale-95 transition-all"
                 style={{ animation: filledSlots > 0 ? 'bounce 2s infinite' : 'none' }}
             >
                 <ShoppingCart size={24} />
                 {filledSlots > 0 && (
-                    <span className="font-bold bg-white/20 px-2 py-0.5 rounded-full text-sm">${totalCost.toFixed(0)}</span>
+                    <span className="font-bold bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
+                        ${totalCost.toFixed(0)}
+                    </span>
+                )}
+                {filledSlots > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-emerald-500 rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg animate-pulse">
+                        {filledSlots}
+                    </span>
                 )}
             </button>
 
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
             <div className={`
-        fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] clay-sidebar
-        transform transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+        fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950
+        transform transition-all duration-500 ease-out
         ${isOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 lg:static lg:h-[calc(100vh-100px)] lg:rounded-3xl lg:w-96 lg:block lg:sticky lg:top-24
+        border-l border-white/5 shadow-2xl
       `}>
                 <div className="h-full flex flex-col p-6">
-                    <div className="flex justify-between items-center mb-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h2 className="text-2xl font-bold text-white tracking-tight">Your Build</h2>
-                            <p className="text-slate-400 text-sm mt-1">{filledSlots} of {totalSlots} components</p>
+                            <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                                Your Build
+                                {isComplete && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                        <Check size={10} className="mr-1" /> Complete
+                                    </span>
+                                )}
+                            </h2>
+                            <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
+                                <span className="inline-flex items-center">
+                                    <Package size={14} className="mr-1.5 text-slate-500" />
+                                    {filledSlots} of {totalSlots} components
+                                </span>
+                                {canUndo && (
+                                    <span className="text-slate-600">• {canUndo ? 'Can undo' : ''}</span>
+                                )}
+                            </p>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-400">
-                                <X size={20} />
-                            </button>
-                        </div>
+                        <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors">
+                            <X size={20} />
+                        </button>
                     </div>
 
                     {/* Action Buttons Row */}
-                    <div className="flex items-center gap-2 mb-6">
+                    <div className="flex items-center gap-1 mb-6 p-1 bg-slate-800/30 rounded-xl">
                         <button 
                             onClick={onUndo} 
                             disabled={!canUndo}
-                            className={`p-2 rounded-lg transition-colors ${canUndo ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'text-slate-600 cursor-not-allowed'}`}
-                            title="Undo"
+                            className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${canUndo ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'text-slate-700 cursor-not-allowed'}`}
+                            title="Undo last action"
                         >
                             <Undo2 size={16} />
                         </button>
                         <button 
                             onClick={onRedo}
                             disabled={!canRedo}
-                            className={`p-2 rounded-lg transition-colors ${canRedo ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'text-slate-600 cursor-not-allowed'}`}
-                            title="Redo"
+                            className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${canRedo ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'text-slate-700 cursor-not-allowed'}`}
+                            title="Redo last action"
                         >
                             <Redo2 size={16} />
                         </button>
+                        
                         <div className="flex-1" />
+                        
                         <div className="relative">
                             <button 
                                 onClick={handleShare}
                                 disabled={filledSlots === 0}
-                                className={`p-2 rounded-lg transition-colors ${filledSlots > 0 ? 'hover:bg-white/5 text-slate-400 hover:text-blue-400' : 'text-slate-600 cursor-not-allowed'}`}
-                                title="Share Build"
+                                className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${filledSlots > 0 ? 'hover:bg-blue-500/20 text-slate-400 hover:text-blue-400' : 'text-slate-700 cursor-not-allowed'}`}
+                                title="Share build link"
                             >
                                 <Share2 size={16} />
                             </button>
                             {shareTooltip && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-green-500 text-white text-xs rounded whitespace-nowrap">
-                                    Link copied!
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-emerald-500 text-white text-xs font-medium rounded-lg whitespace-nowrap shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                    <Check size={12} className="inline mr-1" /> Link copied!
                                 </div>
                             )}
                         </div>
                         <button 
                             onClick={onExport}
                             disabled={filledSlots === 0}
-                            className={`p-2 rounded-lg transition-colors ${filledSlots > 0 ? 'hover:bg-white/5 text-slate-400 hover:text-green-400' : 'text-slate-600 cursor-not-allowed'}`}
-                            title="Export JSON"
+                            className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${filledSlots > 0 ? 'hover:bg-green-500/20 text-slate-400 hover:text-green-400' : 'text-slate-700 cursor-not-allowed'}`}
+                            title="Export as JSON"
                         >
                             <Download size={16} />
                         </button>
                         <button 
-                            onClick={onClear}
+                            onClick={handleClear}
                             disabled={filledSlots === 0}
-                            className={`p-2 rounded-lg transition-colors ${filledSlots > 0 ? 'hover:bg-white/5 text-slate-400 hover:text-red-400' : 'text-slate-600 cursor-not-allowed'}`}
-                            title="Clear Build"
+                            className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${filledSlots > 0 ? 'hover:bg-red-500/20 text-slate-400 hover:text-red-400' : 'text-slate-700 cursor-not-allowed'} ${showClearConfirm ? 'bg-red-500/20 text-red-400' : ''}`}
+                            title={showClearConfirm ? 'Click again to confirm' : 'Clear all components'}
                         >
-                            <Trash2 size={16} />
+                            {showClearConfirm ? <AlertCircle size={16} /> : <Trash2 size={16} />}
                         </button>
                     </div>
 
-                    <div className="mb-6 relative group">
-                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    {/* Progress Bar */}
+                    <div className="mb-6 relative">
+                        <div className="h-2.5 bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
                             <div
-                                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-700 ease-out relative"
                                 style={{ width: `${progress}%` }}
-                            />
+                            >
+                                {/* Animated shine effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shine_2s_ease-in-out_infinite]" />
+                            </div>
+                        </div>
+                        {/* Progress percentage */}
+                        <div className="absolute -top-1 text-[10px] text-slate-500 font-medium transition-all" style={{ left: `${Math.max(progress - 5, 0)}%` }}>
+                            {progress > 0 && `${Math.round(progress)}%`}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5">
-                            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Total Cost</span>
-                            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">${totalCost}</span>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="bg-gradient-to-br from-emerald-950/40 to-emerald-900/20 p-4 rounded-2xl border border-emerald-500/10 group hover:border-emerald-500/30 transition-all">
+                            <span className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                <ShoppingCart size={10} /> Total Cost
+                            </span>
+                            <AnimatedCounter 
+                                value={totalCost} 
+                                prefix="$" 
+                                className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-400"
+                            />
                         </div>
-                        <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5">
-                            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Est. Power</span>
-                            <span className="text-2xl font-bold text-yellow-400 flex items-center">
-                                {totalPower} <span className="text-sm text-yellow-500/70 ml-1">W</span>
+                        <div className="bg-gradient-to-br from-amber-950/40 to-amber-900/20 p-4 rounded-2xl border border-amber-500/10 group hover:border-amber-500/30 transition-all">
+                            <span className="text-[10px] text-amber-400/70 font-semibold uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                <Zap size={10} /> Est. Power
+                            </span>
+                            <span className="text-2xl font-bold text-amber-400 flex items-center">
+                                <AnimatedCounter value={totalPower} className="" />
+                                <span className="text-sm text-amber-500/70 ml-1">W</span>
                             </span>
                         </div>
                     </div>
 
+                    {/* Compatibility Warnings */}
                     {compatibilityIssues.length > 0 && (
-                        <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
-                            <div className="flex items-start text-red-400 text-xs">
-                                <AlertCircle size={14} className="mr-2 mt-0.5 flex-shrink-0" />
-                                <div className="space-y-1">
-                                    {compatibilityIssues.map((issue, idx) => (
-                                        <p key={idx}>{issue.msg}</p>
-                                    ))}
+                        <div className="mb-4 bg-gradient-to-r from-red-950/50 to-red-900/30 border border-red-500/20 rounded-xl p-4 animate-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-red-500/20 rounded-lg flex-shrink-0">
+                                    <AlertCircle size={16} className="text-red-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-semibold text-red-300 mb-1">Compatibility Issues</h4>
+                                    <div className="space-y-1">
+                                        {compatibilityIssues.map((issue, idx) => (
+                                            <p key={idx} className="text-xs text-red-400/80 leading-relaxed">
+                                                {issue.msg}
+                                            </p>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-3 custom-scrollbar">
-                        {CATEGORIES.map(cat => {
+                    {/* Component List */}
+                    <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 custom-scrollbar">
+                        {CATEGORIES.map((cat, idx) => {
                             const part = build[cat.key]
                             const Icon = cat.icon
 
                             if (!part) {
                                 return (
-                                    <div key={cat.key} className="flex items-center p-3 rounded-xl border border-white/5 border-dashed text-slate-600 bg-white/[0.02]">
-                                        <Icon size={16} className="mr-3" />
+                                    <div 
+                                        key={cat.key} 
+                                        className="flex items-center p-3 rounded-xl border-2 border-dashed border-slate-800/80 text-slate-600 bg-slate-900/20 hover:border-slate-700 hover:bg-slate-800/20 transition-all cursor-pointer group"
+                                        style={{ animationDelay: `${idx * 50}ms` }}
+                                    >
+                                        <div className="h-8 w-8 rounded-lg bg-slate-800/50 flex items-center justify-center mr-3 group-hover:bg-slate-700/50 transition-colors">
+                                            <Icon size={14} />
+                                        </div>
                                         <span className="text-sm font-medium">Add {cat.label}</span>
+                                        <Plus size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
                                 )
                             }
 
                             return (
-                                <div key={cat.key} className="group relative bg-slate-800/50 p-3 rounded-xl border border-white/5 hover:border-blue-500/30 transition-all hover:bg-slate-800">
+                                <div 
+                                    key={cat.key} 
+                                    className="group relative bg-gradient-to-r from-slate-800/60 to-slate-800/40 p-3 rounded-xl border border-white/5 hover:border-blue-500/30 transition-all hover:shadow-lg hover:shadow-blue-500/5"
+                                    style={{ animationDelay: `${idx * 50}ms` }}
+                                >
                                     <div className="flex items-start">
-                                        <div className="h-10 w-10 bg-slate-700/50 rounded-lg flex items-center justify-center mr-3 text-slate-400 flex-shrink-0">
-                                            <Icon size={18} />
+                                        <div className="h-10 w-10 bg-gradient-to-br from-slate-700/80 to-slate-800/80 rounded-lg flex items-center justify-center mr-3 text-slate-300 flex-shrink-0 shadow-inner">
+                                            {part.image ? (
+                                                <img src={part.image} alt="" className="h-full w-full object-cover rounded-lg" />
+                                            ) : (
+                                                <Icon size={18} />
+                                            )}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-0.5">{cat.label}</p>
-                                            <p className="text-sm text-white font-medium truncate leading-tight">{part.name}</p>
-                                            <p className="text-xs text-slate-400 mt-0.5">${part.price?.toFixed(2)}</p>
+                                            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                                {cat.label}
+                                                <CheckCircle size={10} className="text-emerald-400" />
+                                            </p>
+                                            <p className="text-sm text-white font-medium truncate leading-tight group-hover:text-blue-300 transition-colors">{part.name}</p>
+                                            <p className="text-xs text-emerald-400 mt-0.5 font-semibold">${part.price?.toFixed(2)}</p>
                                         </div>
                                         <button
                                             onClick={() => onRemove(cat.key)}
-                                            className="absolute top-2 right-2 p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                                            className="absolute top-2 right-2 p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                         >
                                             <X size={14} />
                                         </button>
@@ -511,11 +778,36 @@ const BuildSummary = ({ build, totalCost, totalPower, onRemove, onClear, compati
                         })}
                     </div>
 
+                    {/* Complete Build Button */}
                     <div className="pt-6 mt-4 border-t border-white/10">
-                        <button className="w-full group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center">
-                            <span className="mr-2">Complete Build</span>
-                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button 
+                            className={`w-full group py-4 rounded-xl font-bold shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2
+                                ${isComplete 
+                                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white shadow-emerald-900/30' 
+                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-900/30'
+                                }`}
+                        >
+                            {isComplete ? (
+                                <>
+                                    <CheckCircle size={18} />
+                                    <span>Build Complete!</span>
+                                    <ExternalLink size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                                </>
+                            ) : (
+                                <>
+                                    <span>Complete Build</span>
+                                    <span className="text-blue-300 text-sm">({totalSlots - filledSlots} remaining)</span>
+                                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
+                        
+                        {/* Quick tip */}
+                        {filledSlots > 0 && filledSlots < totalSlots && (
+                            <p className="text-[10px] text-slate-500 text-center mt-3 flex items-center justify-center gap-1">
+                                <Info size={10} /> Click categories to add remaining components
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -533,6 +825,7 @@ function Builder({ onBackHome }) {
     const [filteredComponents, setFilteredComponents] = useState([])
     const [compareList, setCompareList] = useState(() => loadFromStorage(STORAGE_KEYS.COMPARE_LIST, []))
     const [selectedPreset, setSelectedPreset] = useState(null)
+    const { toasts, showToast } = useToast()
 
     // Use build history hook for undo/redo and persistence
     const { 
@@ -605,12 +898,14 @@ function Builder({ onBackHome }) {
             const newBuild = { ...prev }
             if (newBuild[category] && newBuild[category].id === part.id) {
                 delete newBuild[category]
+                showToast(`Removed ${part.name.substring(0, 30)}...`, 'info')
             } else {
                 newBuild[category] = part
+                showToast(`Added ${part.name.substring(0, 30)}...`, 'success')
             }
             return newBuild
         })
-    }, [setBuild])
+    }, [setBuild, showToast])
 
     const removePart = useCallback((category) => {
         setBuild(prev => {
@@ -627,13 +922,17 @@ function Builder({ onBackHome }) {
     // Comparison functions
     const addToCompare = useCallback((component) => {
         setCompareList(prev => {
-            if (prev.length >= 3) return prev
+            if (prev.length >= 3) {
+                showToast('Compare list is full (max 3)', 'error')
+                return prev
+            }
             if (prev.find(c => c.id === component.id)) return prev
             const newList = [...prev, component]
             saveToStorage(STORAGE_KEYS.COMPARE_LIST, newList)
+            showToast(`Added to compare: ${component.name.substring(0, 25)}...`, 'info')
             return newList
         })
-    }, [])
+    }, [showToast])
 
     const removeFromCompare = useCallback((componentId) => {
         setCompareList(prev => {
@@ -831,9 +1130,10 @@ function Builder({ onBackHome }) {
                 )}
 
                 {loading ? (
-                    <div className="text-center py-20">
-                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
-                        <p className="mt-4 text-slate-400 text-sm font-medium">Loading {activeCategory}s...</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {[...Array(6)].map((_, i) => (
+                            <SkeletonCard key={i} />
+                        ))}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1046,6 +1346,9 @@ function Builder({ onBackHome }) {
                 onRemove={removeFromCompare}
                 onClear={clearCompare}
             />
+            
+            {/* Toast Notifications */}
+            <ToastContainer toasts={toasts} />
         </div >
     )
 }
